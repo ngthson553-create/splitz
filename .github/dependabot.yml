@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Framework and build tooling move together; one PR instead of ten.
+      build-tooling:
+        patterns:
+          - vite*
+          - '@vitejs/*'
+          - '@tailwindcss/*'
+          - tailwindcss
+          - typescript
+          - typescript-eslint
+          - eslint*
+          - '@eslint/*'
+          - vitest
+          - '@testing-library/*'
+          - jsdom
+      react:
+        patterns:
+          - react
+          - react-dom
+          - '@types/react'
+          - '@types/react-dom'
+          - react-router-dom
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

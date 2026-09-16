@@ -1,0 +1,72 @@
+name: Bug report
+description: Something behaves differently than it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+
+        Please do not report security issues here — see
+        [SECURITY.md](https://github.com/ngthson553-create/splitz/blob/main/SECURITY.md)
+        for how to report them privately.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us what you expected to happen instead.
+      placeholder: |
+        I did X, the app did Y, but I expected Z.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The smallest sequence that still shows the problem.
+      placeholder: |
+        1. Open ...
+        2. Tap ...
+        3. See ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Which data mode were you in?
+      description: The app runs locally by default and switches to cloud mode when Supabase env vars are set.
+      options:
+        - Local mode (no Supabase configured)
+        - Cloud mode (Supabase configured)
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: A release tag, the commit SHA, or the date you cloned.
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser and version, operating system, and whether it is the installed PWA or a normal tab.
+      placeholder: |
+        Chrome 141 on Android 15, installed as a PWA
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Console errors, screenshots, a link to a minimal reproduction. Do not include real personal or financial data.
+    validations:
+      required: false

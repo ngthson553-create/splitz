@@ -1,0 +1,53 @@
+name: Feature request
+description: Suggest an idea or an improvement.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please describe the problem first. A concrete problem makes it much easier
+        to agree on the right solution.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Who runs into it, and when?
+      placeholder: |
+        When a group has more than N members and someone leaves mid-month, ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      description: Describe the behaviour you have in mind. Alternatives you considered are welcome.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area does this touch?
+      multiple: true
+      options:
+        - Expense splitting and settlement
+        - Groups, members and invites
+        - Payments and VietQR
+        - Auth and accounts
+        - Premium / billing
+        - Admin console
+        - AI features
+        - UI / UX
+        - Docs and tooling
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways to solve it, and why you think they are worse.
+    validations:
+      required: false

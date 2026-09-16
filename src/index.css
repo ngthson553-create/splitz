@@ -1,0 +1,477 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap');
+@import 'tailwindcss';
+
+/* ────────────────────────────────────────────────────────────
+   Splitz design tokens — fintech xanh dương, glass + gradient + 3D
+   ──────────────────────────────────────────────────────────── */
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand blue scale */
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #dbe6ff;
+  --color-brand-200: #bcd1ff;
+  --color-brand-300: #8eb3ff;
+  --color-brand-400: #5b8bff;
+  --color-brand-500: #356bff;
+  --color-brand-600: #1f4ff5;
+  --color-brand-700: #1a3fd1;
+  --color-brand-800: #1c37a6;
+  --color-brand-900: #1d3483;
+
+  --color-cyan-accent: #22d3ee;
+  --color-indigo-accent: #6366f1;
+
+  --color-pos: #10b981;
+  --color-neg: #f43f5e;
+
+  --radius-card: 1.25rem;
+  --radius-sm: 0.875rem;
+  --radius-lg: 1.5rem;
+}
+
+:root {
+  --bg: #eaf1ff;
+  --bg-glow-1: #c7dbff;
+  --bg-glow-2: #d9e4ff;
+  --bg-glow-3: #e8ecff;
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-solid: #ffffff;
+  --surface-2: rgba(255, 255, 255, 0.55);
+  --surface-sunken: #eef3ff;
+  --border: rgba(31, 79, 245, 0.1);
+  --border-strong: rgba(31, 79, 245, 0.18);
+  --text: #131a36;
+  --text-muted: #5b6488;
+  --text-faint: #757da3;
+  --shadow-color: 31 79 245;
+  --nav: rgba(255, 255, 255, 0.85);
+  --nav-ring: #f4f7ff;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #070b1a;
+  --bg-glow-1: #16235c;
+  --bg-glow-2: #1a1745;
+  --bg-glow-3: #0b1230;
+  --surface: rgba(22, 30, 60, 0.66);
+  --surface-solid: #141b35;
+  --surface-2: rgba(30, 40, 75, 0.5);
+  --surface-sunken: #0e1430;
+  --border: rgba(120, 150, 255, 0.12);
+  --border-strong: rgba(120, 150, 255, 0.22);
+  --text: #eef1ff;
+  --text-muted: #a3acd6;
+  --text-faint: #7f88b5;
+  --shadow-color: 4 8 30;
+  --nav: rgba(16, 22, 46, 0.8);
+  --nav-ring: #141b35;
+  color-scheme: dark;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Theme PREMIUM "Prestige" — thẻ đen mạ + accent vàng (chỉ Premium).
+   Dùng lại MỌI class hiện có; chỉ retint token + vài gradient/glow.
+   ──────────────────────────────────────────────────────────── */
+.prestige {
+  --bg: #050406;
+  --bg-glow-1: #221a09;
+  --bg-glow-2: #140f06;
+  --bg-glow-3: #0a0805;
+  --surface: rgba(26, 22, 13, 0.62);
+  --surface-solid: #120f09;
+  --surface-2: rgba(46, 38, 21, 0.5);
+  --surface-sunken: #0b0905;
+  --border: rgba(214, 178, 99, 0.18);
+  --border-strong: rgba(232, 200, 122, 0.42);
+  --text: #f8f2e3;
+  --text-muted: #cabd99;
+  --text-faint: #968a6b;
+  --shadow-color: 10 7 2;
+  --nav: rgba(15, 12, 7, 0.84);
+  --nav-ring: #1a1509;
+  color-scheme: dark;
+
+  /* Gold scale ghi đè brand → toàn app đổi sang vàng mà không sửa component */
+  --color-brand-50: #fdf8ec;
+  --color-brand-100: #f8eed2;
+  --color-brand-200: #efdca6;
+  --color-brand-300: #e7c97e;
+  --color-brand-400: #d9b462;
+  --color-brand-500: #c89a3e;
+  --color-brand-600: #e2bd66;
+  --color-brand-700: #a87f2b;
+  --color-brand-800: #7d5e1f;
+  --color-brand-900: #5c4517;
+
+  /* Vàng kim loại đánh bóng — dùng lại cho nhiều bề mặt */
+  --gold-metal: linear-gradient(135deg, #8a6a22 0%, #e7c97e 22%, #fff4cf 42%, #d9b462 58%, #a87f2b 78%, #f0d98a 100%);
+  --gold-sheen: linear-gradient(120deg, transparent 0%, transparent 35%, rgba(255, 246, 214, 0.55) 50%, transparent 65%, transparent 100%);
+}
+
+/* Nền sang trọng: aurora vàng + vignette tối tạo chiều sâu sân khấu */
+.prestige .app-aurora::before {
+  background: radial-gradient(circle at 30% 30%, rgba(120, 92, 30, 0.55), transparent 68%);
+  opacity: 0.7;
+}
+.prestige .app-aurora::after {
+  background: radial-gradient(circle at 70% 70%, rgba(90, 70, 24, 0.5), transparent 70%);
+  opacity: 0.6;
+}
+.prestige body {
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -10%, rgba(120, 92, 30, 0.22), transparent 60%),
+    radial-gradient(ellipse 100% 100% at 50% 120%, rgba(0, 0, 0, 0.65), transparent 55%),
+    var(--bg);
+}
+
+/* Gradient & glow biến thể vàng kim loại cho prestige */
+.prestige .gradient-brand {
+  background-image: var(--gold-metal);
+  background-size: 180% 180%;
+  color: #1a1408;
+}
+.prestige .gradient-brand-soft {
+  background-image: linear-gradient(135deg, #c89a3e 0%, #e7c97e 45%, #8a6a22 100%);
+}
+.prestige .gradient-card {
+  background-image: linear-gradient(140deg, #2b220f 0%, #171209 55%, #0b0805 100%);
+  border: 1px solid rgba(232, 200, 122, 0.34);
+}
+.prestige .gradient-mesh {
+  background:
+    radial-gradient(at 12% 18%, rgba(231, 201, 126, 0.18), transparent 46%),
+    radial-gradient(at 85% 10%, rgba(255, 244, 207, 0.14), transparent 46%),
+    radial-gradient(at 75% 88%, rgba(168, 127, 43, 0.16), transparent 46%);
+}
+.prestige .text-gradient {
+  background-image: linear-gradient(120deg, #c89a3e, #fff4cf 45%, #e2bd66 70%, #a87f2b);
+  background-size: 200% auto;
+  animation: gold-shimmer 6s linear infinite;
+}
+.prestige .shadow-glow {
+  box-shadow:
+    0 0 0 1px rgba(232, 200, 122, 0.22),
+    0 22px 55px -18px rgba(180, 140, 50, 0.5);
+}
+.prestige .shadow-glow-cyan {
+  box-shadow: 0 22px 55px -18px rgba(255, 244, 207, 0.4);
+}
+
+/* Card prestige: viền vàng bắt sáng + ánh kim trên đỉnh + chiều sâu */
+.prestige .card {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(232, 200, 122, 0.06), transparent 40%),
+    var(--surface-solid);
+  border-color: rgba(214, 178, 99, 0.26);
+  box-shadow:
+    0 1px 0 rgba(255, 246, 214, 0.16) inset,
+    0 0 22px -10px rgba(232, 200, 122, 0.25),
+    0 24px 50px -28px rgba(0, 0, 0, 0.85);
+}
+/* Đường viền sáng mảnh ở mép trên card — như mạ kim loại bắt đèn */
+.prestige .card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgba(255, 246, 214, 0.7), transparent);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Nút primary: nền vàng kim loại + ánh sheen quét qua khi hover */
+.prestige .gradient-brand.text-white,
+.prestige .gradient-brand {
+  color: #1a1408;
+}
+.prestige .shadow-glow.gradient-brand,
+.prestige button.gradient-brand {
+  position: relative;
+  overflow: hidden;
+}
+.prestige button.gradient-brand::after,
+.prestige .shadow-glow.gradient-brand::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--gold-sheen);
+  background-size: 250% 100%;
+  background-position: 150% 0;
+  pointer-events: none;
+  transition: background-position 0.9s ease;
+}
+.prestige button.gradient-brand:hover::after,
+.prestige .shadow-glow.gradient-brand:hover::after {
+  background-position: -120% 0;
+}
+
+/* Avatar/biểu tượng nền gradient brand-soft cũng nhận viền vàng nhẹ */
+.prestige .gradient-brand-soft {
+  box-shadow: inset 0 0 0 1px rgba(255, 246, 214, 0.2);
+}
+
+@keyframes gold-shimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Ánh kim quét tự động trên CTA popup nâng cấp (không cần .prestige scope vì popup luôn vàng) */
+.prestige-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.7) 50%,
+    transparent 62%,
+    transparent 100%
+  );
+  background-size: 250% 100%;
+  pointer-events: none;
+  animation: cta-sheen 3.2s ease-in-out infinite;
+}
+@keyframes cta-sheen {
+  0% {
+    background-position: 160% 0;
+  }
+  55%,
+  100% {
+    background-position: -120% 0;
+  }
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Ambient gradient blobs nền */
+.app-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.app-aurora::before,
+.app-aurora::after {
+  content: '';
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.85;
+}
+.app-aurora::before {
+  width: 70vw;
+  height: 70vw;
+  top: -25vw;
+  left: -15vw;
+  background: radial-gradient(circle at 30% 30%, var(--bg-glow-1), transparent 70%);
+  animation: drift 18s ease-in-out infinite alternate;
+}
+.app-aurora::after {
+  width: 60vw;
+  height: 60vw;
+  bottom: -20vw;
+  right: -10vw;
+  background: radial-gradient(circle at 70% 70%, var(--bg-glow-2), transparent 70%);
+  animation: drift 22s ease-in-out infinite alternate-reverse;
+}
+
+@layer utilities {
+  .text-app {
+    color: var(--text);
+  }
+  .text-muted {
+    color: var(--text-muted);
+  }
+  .text-faint {
+    color: var(--text-faint);
+  }
+
+  .surface-sunken {
+    background: var(--surface-sunken);
+  }
+
+  /* Glass card chủ đạo */
+  .glass {
+    background: var(--surface);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid var(--border);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.5) inset,
+      0 18px 40px -24px rgb(var(--shadow-color) / 0.45);
+  }
+  .card {
+    background: var(--surface-solid);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 20px 45px -28px rgb(var(--shadow-color) / 0.5);
+  }
+
+  /* Gradient thương hiệu */
+  .gradient-brand {
+    background-image: linear-gradient(135deg, #356bff 0%, #1f4ff5 45%, #22d3ee 100%);
+  }
+  .gradient-brand-soft {
+    background-image: linear-gradient(135deg, #5b8bff 0%, #356bff 50%, #6366f1 100%);
+  }
+  .gradient-card {
+    background-image: linear-gradient(140deg, #2f6bff 0%, #2747e6 55%, #14299e 100%);
+  }
+  .gradient-mesh {
+    background:
+      radial-gradient(at 12% 18%, rgba(53, 107, 255, 0.18), transparent 45%),
+      radial-gradient(at 85% 10%, rgba(34, 211, 238, 0.16), transparent 45%),
+      radial-gradient(at 75% 88%, rgba(99, 102, 241, 0.16), transparent 45%);
+  }
+  .text-gradient {
+    background-image: linear-gradient(120deg, #356bff, #22d3ee);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Đổ bóng nổi 3D có màu */
+  .shadow-glow {
+    box-shadow: 0 22px 50px -20px rgba(31, 79, 245, 0.55);
+  }
+  .shadow-glow-cyan {
+    box-shadow: 0 22px 50px -20px rgba(34, 211, 238, 0.5);
+  }
+  .shadow-soft {
+    box-shadow: 0 18px 40px -28px rgb(var(--shadow-color) / 0.55);
+  }
+
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  .press {
+    transition:
+      transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 0.18s ease,
+      filter 0.18s ease;
+  }
+  .press:active {
+    transform: scale(0.96);
+  }
+
+  .hover-lift {
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-3px);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Animation tiện ích */
+  .animate-float {
+    animation: float 5s ease-in-out infinite;
+  }
+  .animate-fade-up {
+    animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-pop {
+    animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .animate-shimmer {
+    background-size: 200% 100%;
+    animation: shimmer 2.2s linear infinite;
+  }
+  .animate-spin-slow {
+    animation: spin 14s linear infinite;
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(4%, 6%, 0) scale(1.12);
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(2deg);
+  }
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

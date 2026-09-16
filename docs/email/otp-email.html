@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="x-apple-disable-message-reformatting">
+<title>Mã đăng nhập Splitz</title>
+</head>
+<body style="margin:0;padding:0;background-color:#eaf2ff;">
+  <!-- Preheader (ẩn, hiện ở preview hộp thư) -->
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#eaf2ff;font-size:1px;line-height:1px;">
+    Mã đăng nhập Splitz của bạn: {{ .Token }}
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#eaf2ff;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <!-- Card -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;background-color:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 20px 45px -28px rgba(31,79,245,0.5);">
+
+          <!-- Header gradient -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#356bff 0%,#1f4ff5 55%,#22d3ee 100%);background-color:#1f4ff5;padding:36px 32px 32px;text-align:center;">
+              <table role="presentation" cellpadding="0" cellspacing="0" align="center">
+                <tr>
+                  <td style="background-color:rgba(255,255,255,0.18);border-radius:16px;width:56px;height:56px;text-align:center;vertical-align:middle;">
+                    <span style="font-size:28px;font-weight:800;color:#ffffff;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:56px;">S</span>
+                  </td>
+                </tr>
+              </table>
+              <div style="margin-top:16px;font-size:22px;font-weight:800;color:#ffffff;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:-0.5px;">Splitz</div>
+              <div style="margin-top:4px;font-size:13px;color:#dbe8ff;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">Chia tiền nhóm sòng phẳng</div>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:36px 32px 12px;text-align:center;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <div style="font-size:20px;font-weight:800;color:#131a36;">Mã đăng nhập của bạn</div>
+              <div style="margin-top:8px;font-size:14px;line-height:22px;color:#5b6488;">
+                Nhập mã 6 số bên dưới để hoàn tất đăng nhập vào Splitz.
+              </div>
+            </td>
+          </tr>
+
+          <!-- OTP code -->
+          <tr>
+            <td style="padding:20px 32px 8px;" align="center">
+              <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="background-color:#eef3ff;border:2px solid #c9d8ff;border-radius:18px;">
+                <tr>
+                  <td style="padding:18px 36px;text-align:center;">
+                    <span style="font-size:36px;font-weight:800;letter-spacing:10px;color:#1f4ff5;font-family:'Courier New',monospace;">{{ .Token }}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Note -->
+          <tr>
+            <td style="padding:14px 32px 32px;text-align:center;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <div style="font-size:13px;line-height:20px;color:#8b93b5;">
+                Mã có hiệu lực trong vài phút. Vui lòng không chia sẻ mã này với bất kỳ ai.
+              </div>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 32px;">
+              <div style="border-top:1px solid #eef0f6;"></div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 32px 32px;text-align:center;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <div style="font-size:12px;line-height:19px;color:#a3acce;">
+                Nếu bạn không yêu cầu đăng nhập, hãy bỏ qua email này — tài khoản của bạn vẫn an toàn.
+              </div>
+              <div style="margin-top:14px;font-size:12px;color:#b9c0db;">
+                © Splitz · Không giữ tiền · Không xử lý thanh toán
+              </div>
+            </td>
+          </tr>
+
+        </table>
+
+        <!-- Outside footer -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;">
+          <tr>
+            <td style="padding:18px 16px;text-align:center;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+              <div style="font-size:11px;color:#9aa3c4;">
+                Email được gửi bởi Splitz
+              </div>
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

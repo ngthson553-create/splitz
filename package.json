@@ -1,0 +1,76 @@
+{
+  "name": "splitz",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Mobile-first PWA for splitting group expenses: track who paid, reduce debts to the fewest transfers, and settle up with a VietQR bank-transfer QR code.",
+  "license": "Apache-2.0",
+  "author": "ngthson553-create <286624578+ngthson553-create@users.noreply.github.com>",
+  "homepage": "https://splitz.tson.io.vn",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ngthson553-create/splitz.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ngthson553-create/splitz/issues"
+  },
+  "keywords": [
+    "expense-splitting",
+    "split-bill",
+    "bill-splitting",
+    "group-expenses",
+    "settlement",
+    "vietqr",
+    "pwa",
+    "react",
+    "vite",
+    "supabase",
+    "vietnam"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -b",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@sentry/react": "^8.45.0",
+    "@supabase/supabase-js": "^2.106.2",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.18.0",
+    "jsqr": "^1.4.0",
+    "lucide-react": "^1.17.0",
+    "posthog-js": "^1.200.0",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^7.16.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@tailwindcss/vite": "^4.3.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "jsdom": "^29.1.1",
+    "tailwindcss": "^4.3.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^8.0.12",
+    "vite-plugin-pwa": "^1.0.0",
+    "vitest": "^4.1.8"
+  }
+}

@@ -1,0 +1,27 @@
+Splitz
+Copyright 2026 ngthson553-create
+
+This product includes software developed as part of the Splitz project
+(https://github.com/ngthson553-create/splitz).
+
+Third-party components are distributed under their own licenses:
+
+  - React, React DOM — MIT
+  - React Router — MIT
+  - Supabase JS client — MIT
+  - Tailwind CSS — MIT
+  - Framer Motion — MIT
+  - lucide-react (icons) — ISC
+  - clsx — MIT
+  - qrcode.react — ISC
+  - jsQR — Apache-2.0
+  - PostHog JS — MIT
+  - Sentry (browser SDK) — MIT
+  - Vite, Vitest, ESLint and the TypeScript toolchain — MIT / Apache-2.0
+
+Bank BIN codes, short names and logo URLs follow the public VietQR / NAPAS
+specification and are used only to render payment QR codes. Splitz is not
+affiliated with, endorsed by, or sponsored by VietQR, NAPAS or any bank.
+
+Full license texts for the dependencies are available in each package's
+distribution (node_modules/<package>/LICENSE).

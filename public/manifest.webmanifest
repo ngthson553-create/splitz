@@ -1,0 +1,19 @@
+{
+  "name": "Splitz — Chia tiền nhóm",
+  "short_name": "Splitz",
+  "description": "Chia tiền nhóm sòng phẳng: ghi chi tiêu, rút gọn công nợ và tạo QR chuyển khoản tức thì.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eaf1ff",
+  "theme_color": "#356bff",
+  "lang": "vi",
+  "categories": ["finance", "productivity", "utilities"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

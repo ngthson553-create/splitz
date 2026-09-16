@@ -1,0 +1,39 @@
+# Dependencies and build output
+node_modules
+dist
+dist-ssr
+dev-dist
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Test and coverage output
+coverage
+test-results
+
+# Environment files — .env.example is the template and IS committed
+.env
+.env.local
+.env.*.local
+*.local
+
+# Editor and OS noise
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+*.sw?
+.fuse_hidden*
+
+# TypeScript incremental build state
+*.tsbuildinfo
+
+# Supabase CLI scratch state
+supabase/.temp
+supabase/.branches
+
+# Local agent tooling config (shared config can be committed, local settings cannot)
+.claude/settings.local.json

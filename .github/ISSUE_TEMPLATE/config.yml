@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/ngthson553-create/splitz/security/advisories/new
+    about: Report security issues privately, never in a public issue.
+  - name: Question or usage help
+    url: https://github.com/ngthson553-create/splitz/discussions
+    about: Ask questions about setup, deployment or how the settlement engine works.

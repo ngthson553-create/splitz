@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#356bff" />
+    <meta
+      name="description"
+      content="Splitz — chia tiền nhóm sòng phẳng trong vài chạm. Ghi chi tiêu, rút gọn công nợ và tạo QR chuyển khoản tức thì."
+    />
+
+    <!-- Zalo domain verification — set VITE_ZALO_VERIFICATION to emit this tag -->
+    %ZALO_VERIFY_META%
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Splitz" />
+
+    <!-- Open Graph / social — absolute URLs come from VITE_SITE_URL (see vite.config.ts) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Splitz" />
+    <meta property="og:title" content="Splitz — Chia tiền nhóm sòng phẳng" />
+    <meta property="og:description" content="Ghi chi tiêu, rút gọn công nợ và tạo QR chuyển khoản tức thì. Chia tiền nhóm sòng phẳng trong vài chạm." />
+    <meta property="og:image" content="%SITE_URL%/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:url" content="%SITE_URL%/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Splitz — Chia tiền nhóm sòng phẳng" />
+    <meta name="twitter:description" content="Ghi chi tiêu, rút gọn công nợ và tạo QR chuyển khoản tức thì." />
+    <meta name="twitter:image" content="%SITE_URL%/og-image.png" />
+
+    <title>Splitz — Chia tiền nhóm sòng phẳng</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
