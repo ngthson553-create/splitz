@@ -43,7 +43,7 @@
     "@sentry/react": "^8.45.0",
     "@supabase/supabase-js": "^2.106.2",
     "clsx": "^2.1.1",
-    "framer-motion": "^11.18.0",
+    "framer-motion": "^13.2.0",
     "jsqr": "^1.4.0",
     "lucide-react": "^1.17.0",
     "posthog-js": "^1.200.0",
