@@ -1,40 +1,50 @@
 <div align="center">
 
-<img src="./public/og-image.png" alt="Splitz — chia tiền nhóm sòng phẳng trong vài chạm" width="760" />
-
 # Splitz
 
-**Chia tiền nhóm sòng phẳng, không phải nhẩm tính.**
+**Alternative Splitwise mã nguồn mở — chia tiền nhóm, rút gọn lượt chuyển, quyết toán bằng QR.**
 
-Ghi ai đã trả, xem ai nợ ai, rút gọn công nợ xuống ít lượt chuyển nhất có thể, và
-quyết toán bằng một mã QR chuyển khoản — ngay trên điện thoại, cả khi mất mạng.
+Chạy offline · Không cần tài khoản · 5 kiểu chia · 62 ngân hàng Việt Nam
+
+**[▶ Xem bản chạy thật](https://splitz.tson.io.vn)**
 
 [![CI](https://github.com/ngthson553-create/splitz/actions/workflows/ci.yml/badge.svg)](https://github.com/ngthson553-create/splitz/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Bản chạy thật](https://splitz.tson.io.vn) · [English](README.md) · [Đóng góp](CONTRIBUTING.md)
+| Ghi khoản chi | Ai nợ ai | Quyết toán qua VietQR |
+|:---:|:---:|:---:|
+| ![Ghi khoản chi trong Splitz](docs/screenshots/expense.png) | ![Cân đối sau chuyến đi](docs/screenshots/settle.png) | ![Quyết toán bằng mã VietQR](docs/screenshots/qr.png) |
+
+Chuyến đi chơi, nhóm ở ghép, bữa ăn team — một người trả tiền, những người còn
+lại nợ phần của mình, và cuối cùng phải có ai đó ngồi tính xem ai chuyển cho ai
+bao nhiêu. Splitz làm đúng phần đó: tính số dư từng người, rút toàn bộ công nợ
+xuống **ít lượt chuyển nhất có thể**, và sinh mã **VietQR** để tất toán từng lượt.
+
+[English](README.md) · [Đóng góp](CONTRIBUTING.md) · [Báo lỗi](https://github.com/ngthson553-create/splitz/issues)
 
 </div>
 
 ---
 
-## Splitz là gì?
+## Tại sao là Splitz?
 
-Splitz là PWA ưu tiên điện thoại để chia chi tiêu trong một nhóm — chuyến đi chơi,
-nhóm ở ghép, bữa ăn chung. Một người trả tiền, những người còn lại nợ phần của
-mình, và cuối tháng phải có ai đó ngồi tính xem ai chuyển cho ai bao nhiêu. Splitz
-làm đúng phần đó.
+Cộng một hoá đơn là phần dễ. Phần thú vị là đóng các khoản nợ: sau một chuyến đi
+4 người, bạn không muốn 6 lượt chuyển — bạn muốn 2 hoặc 3.
 
-Vấn đề khó không nằm ở phép cộng. Nó nằm ở chỗ **đóng toàn bộ các khoản nợ bằng
-ít lượt chuyển khoản nhất**, mà không đánh rơi một đồng nào vì làm tròn. Đó là một
-engine độc lập, có test đầy đủ — xem [Engine chia tiền](#engine-chia-tiền).
+Splitz coi đó là một bài toán thuật toán, không phải chuyện "tính sau". Từ số dư
+ròng, nó tách các thành viên thành những cụm tổng bằng 0 và giải **chính xác**
+từng cụm bằng quy hoạch động bitmask cho nhóm tối đa 10 người — để không ai phải
+thực hiện một lượt chuyển có thể tránh được. Engine là TypeScript thuần, không
+phụ thuộc UI, và là phần có độ phủ test cao nhất dự án. Có
+[một mục riêng cho nó phía dưới](#engine-chia-tiền).
 
-Splitz làm cho thị trường Việt Nam, nên giao diện là tiếng Việt và quyết toán qua
-**VietQR** — chuẩn QR mà mọi app ngân hàng Việt Nam hỗ trợ — với 62 ngân hàng.
+Splitz làm cho thị trường Việt Nam, nên nó quyết toán theo cách người Việt chuyển
+tiền: **VietQR** — chuẩn QR mà mọi app ngân hàng Việt đều quét được — với BIN,
+tên và logo của 62 ngân hàng.
 
-> Splitz không giữ tiền và không xử lý thanh toán. Mã QR được tạo từ thông tin tài
-> khoản của chính người nhận; giao dịch diễn ra trong app ngân hàng của người dùng.
+> Splitz không giữ tiền và không xử lý thanh toán. Mã QR được tạo từ thông tin
+> tài khoản của chính người nhận; giao dịch diễn ra trong app ngân hàng của người dùng.
 
 ## Tính năng
 
@@ -42,7 +52,8 @@ Splitz làm cho thị trường Việt Nam, nên giao diện là tiếng Việt 
 
 - Nhóm và thành viên, thêm nhanh, mời bằng link hoặc mã.
 - Khoản chi với 5 kiểu chia: **đều**, **nhập tay**, **phần trăm**, **theo phần**,
-  và **theo từng món**.
+  **theo từng món** — hỗ trợ nhiều người trả trong một khoản và 10 loại tiền tệ
+  cho chuyến xuyên biên giới.
 - Số dư từng người với quy tắc làm tròn lẻ xác định, nên tổng luôn khớp đúng hoá đơn.
 - Hai chiến lược quyết toán: **Smart settle** (greedy), và **Tối thiểu lượt chuyển**
   (bitmask DP chính xác cho tối đa 10 người, heuristic khi đông hơn).
@@ -53,7 +64,7 @@ Splitz làm cho thị trường Việt Nam, nên giao diện là tiếng Việt 
 **Thanh toán**
 
 - Sinh mã VietQR / NAPAS cho 62 ngân hàng Việt Nam, kèm mã kiểm tra CRC16.
-- Hiển thị thông tin người nhận ngay cạnh mã QR.
+- Tên người nhận, ngân hàng và số tài khoản hiển thị cạnh QR để đối chiếu.
 
 **Tài khoản, đồng bộ và ngoại tuyến**
 
@@ -76,8 +87,8 @@ Splitz làm cho thị trường Việt Nam, nên giao diện là tiếng Việt 
 
 **Trợ lý AI** (tuỳ chọn; không có key thì tự tắt)
 
-- Nhập khoản chi bằng câu tự nhiên ("mình trả 250k bữa trưa cho 4 người"), OCR hoá
-  đơn, và thống kê chi tiêu. Gemini là nhà cung cấp chính, DeepSeek là dự phòng.
+- Nhập khoản chi bằng câu tự nhiên ("mình trả 250k bữa trưa cho 4 người"), OCR
+  hoá đơn, và thống kê chi tiêu. Gemini là nhà cung cấp chính, DeepSeek là dự phòng.
 
 ## Công nghệ
 
@@ -124,8 +135,8 @@ khi có đủ `VITE_SUPABASE_URL` và `VITE_SUPABASE_ANON_KEY`.
 Các phần mở rộng tuỳ chọn, độc lập với nhau:
 
 - **Đăng nhập Google** — bật provider trong Supabase và thêm callback URL.
-- **Đăng nhập Zalo** — đặt `VITE_ZALO_APP_ID`, deploy Edge Function `zalo-auth` kèm
-  secrets (`supabase secrets set ...`).
+- **Đăng nhập Zalo** — đặt `VITE_ZALO_APP_ID`, deploy Edge Function `zalo-auth`
+  kèm secrets (`supabase secrets set ...`).
 - **Premium / PayOS** — deploy `payos-create` và `payos-webhook`, trỏ webhook PayOS
   về `https://<project-ref>.functions.supabase.co/payos-webhook`.
 - **Nhắc nợ** — bật `pg_cron` + `pg_net` rồi deploy `send-reminders`.
@@ -182,8 +193,8 @@ docs/                  # ghi chú thiết kế, roadmap và bàn giao kiến tr�
 `src/lib/settlement/` không phụ thuộc React, DOM hay Supabase. Đây là TypeScript
 thuần, có độ phủ test cao nhất dự án, và là phần đáng đọc nhất.
 
-**Tiền luôn là số nguyên.** Số tiền lưu ở đơn vị nhỏ nhất (đồng). Không có số thực
-(float) ở bất kỳ đâu trên đường đi của tiền, nên không có sai số trôi.
+**Tiền luôn là số nguyên.** Số tiền lưu ở đơn vị nhỏ nhất (đồng). Không có số
+thực (float) ở bất kỳ đâu trên đường đi của tiền, nên không có sai số trôi.
 
 **Mọi kiểu chia đều khớp đúng hoá đơn.** Khi số tiền không chia hết, phần lẻ được
 phân bổ theo một quy tắc rõ ràng cho từng kiểu chia — chia đều và theo món phát
@@ -191,17 +202,17 @@ từng đồng lẻ từ đầu danh sách; chia phần trăm và theo phần đ
 Quy tắc này là quyết định sản phẩm, không phải chuyện vô tình, và test khoá chặt nó.
 
 **Tối thiểu lượt chuyển được giải chính xác, không phải xấp xỉ.** Từ số dư ròng,
-`maxReduction` tách các thành viên thành những cụm độc lập có tổng bằng 0, rồi giải
-chính xác từng cụm bằng quy hoạch động bitmask (subset-sum trên tập thành viên) khi
-nhóm có tối đa 10 người. Đông hơn thì không gian tìm kiếm tăng quá nhanh nên thuật
-toán chuyển sang heuristic. `smartSettle` là phương án greedy đơn giản hơn: sắp xếp
-con nợ và chủ nợ, ghép khoản lớn nhất với khoản lớn nhất, lặp lại.
+`maxReduction` tách các thành viên thành những cụm độc lập có tổng bằng 0, rồi
+giải chính xác từng cụm bằng quy hoạch động bitmask (subset-sum trên tập thành
+viên) khi nhóm có tối đa 10 người. Đông hơn thì không gian tìm kiếm tăng quá
+nhanh nên thuật toán chuyển sang heuristic. `smartSettle` là phương án greedy đơn
+giản hơn: sắp xếp con nợ và chủ nợ, ghép khoản lớn nhất với khoản lớn nhất, lặp lại.
 
 Cả hai đều hiện trong màn quyết toán, để nhóm so sánh "chuyển ít lượt nhất" với
 "ghép đơn giản nhất".
 
-**Mã QR sinh đúng chuẩn.** `vietqr.ts` phát payload TLV theo EMVCo kèm mã kiểm tra
-CRC16, cùng BIN, tên rút gọn và URL logo của 62 ngân hàng Việt Nam.
+**Mã QR sinh đúng chuẩn.** `vietqr.ts` phát payload TLV theo EMVCo kèm mã kiểm
+tra CRC16, cùng BIN, tên rút gọn và URL logo của 62 ngân hàng Việt Nam.
 
 ```bash
 npm test -- src/lib/settlement
@@ -223,20 +234,24 @@ CI chạy lint, typecheck, test và build ở mọi lần push và pull request.
 ## Triển khai
 
 Phần giao diện là SPA tĩnh — host tĩnh nào cũng chạy. Bản tham chiếu dùng
-Cloudflare Pages (build `npm run build`, thư mục ra `dist/`, fallback SPA đã có sẵn
-qua `public/_redirects`).
+Cloudflare Pages (build `npm run build`, thư mục ra `dist/`, fallback SPA đã có
+sẵn qua `public/_redirects`).
 
 Đặt `VITE_SITE_URL` và các biến `VITE_*` tuỳ chọn trong môi trường build của host
 trước lần deploy đầu tiên.
 
-## Tình trạng
+## Tình trạng và lộ trình
 
 Splitz là sản phẩm đang chạy thật, không phải bộ khung: bản demo công khai chạy
 đúng đoạn code trong repo này. Ghi chú tiếng Việt trong `docs/` là hồ sơ kỹ thuật
 của dự án — kiến trúc, roadmap và đặc tả admin console.
 
-Rất hoan nghênh đóng góp. Bắt đầu từ [CONTRIBUTING.md](CONTRIBUTING.md), và với
-thay đổi lớn hơn một bản sửa lỗi, hãy mở issue trước để thống nhất hướng làm.
+Các ý định làm tiếp được theo dõi ở
+[issues](https://github.com/ngthson553-create/splitz/issues) — gồm nhóm tiền tệ
+kết hợp, import từ Splitwise, khoản chi định kỳ và bản dịch. Nếu đó đúng việc bạn
+muốn làm, pull request rất được hoan nghênh: bắt đầu từ
+[CONTRIBUTING.md](CONTRIBUTING.md), và với thay đổi lớn hơn một bản sửa lỗi, hãy
+mở issue trước để thống nhất hướng làm.
 
 ## Giấy phép
 
@@ -247,4 +262,4 @@ là giữ nguyên thông báo bản quyền và giấy phép. Giấy phép cũng
 một cách rõ ràng.
 
 Splitz không liên kết, không được bảo trợ và không được chứng thực bởi VietQR,
-NAPAS, PayOS hay bất kỳ ngân hàng nào có thông tin được sinh thành mã QR.
+NAPAS, PayOS, Splitwise hay bất kỳ ngân hàng nào có thông tin được sinh thành mã QR.

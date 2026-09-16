@@ -1,43 +1,52 @@
 <div align="center">
 
-<img src="./public/og-image.png" alt="Splitz — split group expenses and settle up in a few taps" width="760" />
-
 # Splitz
 
-**Split group expenses without the awkward math.**
+**The open-source Splitwise alternative — split a group bill, minimize the transfers, settle by QR.**
 
-Track who paid, see who owes whom, reduce the debt to the fewest possible transfers,
-and settle up with a bank-transfer QR code — on a phone, offline, in seconds.
+Works offline · No account required · 5 ways to split · 62 Vietnamese banks
+
+**[▶ Try the live demo](https://splitz.tson.io.vn)**
 
 [![CI](https://github.com/ngthson553-create/splitz/actions/workflows/ci.yml/badge.svg)](https://github.com/ngthson553-create/splitz/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Live demo](https://splitz.tson.io.vn) · [Tiếng Việt](README.vi.md) · [Contributing](CONTRIBUTING.md)
+| Record an expense | Who owes whom | Settle with VietQR |
+|:---:|:---:|:---:|
+| ![Recording an expense in Splitz](docs/screenshots/expense.png) | ![Who owes whom after a trip](docs/screenshots/settle.png) | ![Settling a debt with a VietQR code](docs/screenshots/qr.png) |
+
+A trip, a shared flat, a team lunch — one person pays, everyone else owes their
+share, and at the end somebody has to work out who transfers what to whom.
+Splitz does that part: it works out the balances, reduces the whole debt to the
+**fewest possible bank transfers**, and renders the **VietQR** code that closes
+each one.
+
+[Tiếng Việt](README.vi.md) · [Contributing](CONTRIBUTING.md) · [Report an issue](https://github.com/ngthson553-create/splitz/issues)
 
 </div>
 
 ---
 
-## What is Splitz?
+## Why Splitz?
 
-Splitz is a mobile-first PWA for sharing expenses in a group — a trip, a shared
-flat, a team lunch. One person pays, everybody else owes their share, and at the
-end of the month somebody has to work out who transfers what to whom. Splitz does
-that part.
+Adding up a bill is the easy part. Closing a set of debts is the interesting
+one: after a 4-person trip you don't want 6 transfers, you want 2 or 3.
 
-The interesting problem is not addition. It is **closing a set of debts with as
-few bank transfers as possible**, while never losing a single đồng to rounding.
-That part is a self-contained, well-tested engine — see
-[The settlement engine](#the-settlement-engine).
+Splitz treats that as an algorithm, not an afterthought. Given the balances, it
+partitions members into zero-sum groups and solves each one **exactly** — with a
+bitmask dynamic program for groups of up to 10 people — so nobody makes a
+transfer that could have been avoided. The engine is plain TypeScript with no
+UI dependencies, and it is the most tested part of the codebase. There is a
+[whole section on it below](#the-settlement-engine).
 
-Splitz is built for Vietnam, so it speaks Vietnamese and settles through
-**VietQR** — the QR standard supported by Vietnamese banking apps — across 62
-banks.
+Splitz is built for Vietnam, so it settles the way Vietnam actually moves
+money: **VietQR** — the QR standard every Vietnamese banking app scans — with
+BIN codes, names and logos for 62 banks.
 
 > Splitz never holds money and never processes payments. The QR codes it renders
-> are built from the receiving member's own bank details; the transfer happens in
-> the user's banking app.
+> are built from the receiving member's own bank details; the transfer happens
+> in the user's banking app.
 
 ## Features
 
@@ -45,7 +54,8 @@ banks.
 
 - Groups and members, with quick add and invite links/codes.
 - Expenses with five split modes: **equal**, **exact amounts**, **percentages**,
-  **shares**, and **itemized** by line.
+  **shares**, and **itemized** by line — plus multiple payers on one expense and
+  ten currencies for cross-border trips.
 - Per-member balances with defined rounding rules, so the sum always matches the
   bill exactly.
 - Two settlement strategies: a greedy **Smart settle**, and **fewest transfers**
@@ -57,20 +67,20 @@ banks.
 **Payments**
 
 - VietQR / NAPAS QR generation for 62 Vietnamese banks, with CRC16 check bytes.
-- Payee confirmation details rendered next to the QR.
+- Payee name, bank and account number rendered next to the QR for confirmation.
 
 **Accounts, sync and offline**
 
-- **Local-first by default**: with no backend configured the app stores everything
-  in `localStorage` and needs no account at all.
+- **Local-first by default**: with no backend configured the app stores
+  everything in `localStorage` and needs no account at all.
 - Optional cloud mode on Supabase: email OTP, Google sign-in, and Zalo sign-in.
 - Installable PWA with precaching, so the app opens and works offline.
 - Web push and email reminders for upcoming debts.
 
 **Premium**
 
-- Subscription plans billed through **PayOS**, with redemption codes, expiry and a
-  grace period.
+- Subscription plans billed through **PayOS**, with redemption codes, expiry and
+  a grace period.
 
 **Admin console**
 
@@ -82,7 +92,8 @@ banks.
 **AI helpers** (optional; disabled when no key is set)
 
 - Natural-language expense entry ("I paid 250k for lunch for four"), receipt OCR,
-  and spending insights. Gemini is the primary provider with DeepSeek as fallback.
+  and spending insights. Gemini is the primary provider with DeepSeek as
+  fallback.
 
 ## Tech stack
 
@@ -202,9 +213,10 @@ The rule is a product decision, not an accident, and the tests pin it down.
 **Fewest transfers is solved properly, not approximately.** Given net balances,
 `maxReduction` partitions members into independent zero-sum clusters, then solves
 each cluster exactly with a bitmask dynamic program (subset-sum over members)
-when the group has at most 10 people. Above that the search space grows too fast,
-so it falls back to a heuristic. `smartSettle` is the simpler greedy alternative:
-sort debtors and creditors, match the largest against the largest, repeat.
+when the group has at most 10 people. Above that the search space grows too
+fast, so it falls back to a heuristic. `smartSettle` is the simpler greedy
+alternative: sort debtors and creditors, match the largest against the largest,
+repeat.
 
 Both are exposed in the settlement screen, so a group can compare "settle in the
 fewest transfers" against "settle with the simplest pairing".
@@ -238,15 +250,18 @@ provided by `public/_redirects`).
 Set `VITE_SITE_URL` and any optional `VITE_*` variables in the host's build
 environment before the first deploy.
 
-## Status
+## Status and roadmap
 
 Splitz is a working product, not a scaffold: the live demo runs the code in this
 repository. The Vietnamese notes in `docs/` are the project's own engineering
 record — architecture, roadmap and the admin console specification.
 
-Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), and for
-anything larger than a bug fix please open an issue first so we can agree on the
-approach.
+Ideas currently on the table are tracked as
+[issues](https://github.com/ngthson553-create/splitz/issues) — including
+multi-currency groups, importing from Splitwise, recurring expenses and
+translations. If one of them is yours, a pull request is very welcome: start
+with [CONTRIBUTING.md](CONTRIBUTING.md), and for anything larger than a bug fix
+please open an issue first so we can agree on the approach.
 
 ## License
 
@@ -257,5 +272,5 @@ You may use, modify and distribute this software, including commercially,
 provided you keep the copyright and license notices. The license also grants an
 express patent license.
 
-Splitz is not affiliated with, endorsed by or sponsored by VietQR, NAPAS, PayOS or
-any of the banks whose details it can render into a QR code.
+Splitz is not affiliated with, endorsed by or sponsored by VietQR, NAPAS, PayOS,
+Splitwise or any of the banks whose details it can render into a QR code.
