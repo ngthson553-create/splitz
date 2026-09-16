@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./public/og-image.png" alt="Splitz — split group expenses and settle up in a few taps" width="760" />
+
 # Splitz
 
 **The open-source Splitwise alternative — split a group bill, minimize the transfers, settle by QR.**
@@ -15,6 +17,12 @@ Works offline · No account required · 5 ways to split · 62 Vietnamese banks
 | Record an expense | Who owes whom | Settle with VietQR |
 |:---:|:---:|:---:|
 | ![Recording an expense in Splitz](docs/screenshots/expense.png) | ![Who owes whom after a trip](docs/screenshots/settle.png) | ![Settling a debt with a VietQR code](docs/screenshots/qr.png) |
+
+**Three themes**, including **Prestige** — the black-and-gold look reserved for Premium:
+
+| Light | Dark | Prestige |
+|:---:|:---:|:---:|
+| ![Splitz light theme](docs/screenshots/theme-light.png) | ![Splitz dark theme](docs/screenshots/theme-dark.png) | ![Splitz Prestige theme](docs/screenshots/theme-prestige.png) |
 
 A trip, a shared flat, a team lunch — one person pays, everyone else owes their
 share, and at the end somebody has to work out who transfers what to whom.
@@ -81,6 +89,7 @@ BIN codes, names and logos for 62 banks.
 
 - Subscription plans billed through **PayOS**, with redemption codes, expiry and
   a grace period.
+- The **Prestige** theme — black card, gold accents.
 
 **Admin console**
 
