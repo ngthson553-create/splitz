@@ -6,16 +6,34 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+
+    # Major bumps are raised by hand, with a smoke test on the running app.
+    # A green CI run is not proof that a runtime library still behaves: the test
+    # suite does not exercise Sentry initialisation or animation props, and a
+    # grouped tooling bump already failed CI once because TypeScript 7 is not
+    # supported by typescript-eslint yet. Non-breaking updates still arrive
+    # automatically; security advisories are surfaced separately by Dependabot
+    # alerts (Settings → Code security).
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - version-update:semver-major
+
     groups:
-      # Framework and build tooling move together; one PR instead of ten.
+      # TypeScript and its ESLint parser must move together — and, just as
+      # importantly, apart from the rest of the tooling. Grouped with eslint and
+      # vite, a TypeScript bump takes the whole lint step down in a PR where the
+      # cause is buried among unrelated updates.
+      typescript:
+        patterns:
+          - typescript
+          - typescript-eslint
       build-tooling:
         patterns:
           - vite*
           - '@vitejs/*'
           - '@tailwindcss/*'
           - tailwindcss
-          - typescript
-          - typescript-eslint
           - eslint*
           - '@eslint/*'
           - vitest
@@ -33,3 +51,7 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - version-update:semver-major
