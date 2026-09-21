@@ -16,13 +16,13 @@ Works offline · No account required · 5 ways to split · 62 Vietnamese banks
 
 | Record an expense | Who owes whom | Settle with VietQR |
 |:---:|:---:|:---:|
-| ![Recording an expense in Splitz](docs/screenshots/expense.png) | ![Who owes whom after a trip](docs/screenshots/settle.png) | ![Settling a debt with a VietQR code](docs/screenshots/qr.png) |
+| ![Recording an expense in Splitz](docs/screenshots/en/expense.png) | ![Who owes whom after a trip](docs/screenshots/en/settle.png) | ![Settling a debt with a VietQR code](docs/screenshots/en/qr.png) |
 
 **Three themes**, including **Prestige** — the black-and-gold look reserved for Premium:
 
 | Light | Dark | Prestige |
 |:---:|:---:|:---:|
-| ![Splitz light theme](docs/screenshots/theme-light.png) | ![Splitz dark theme](docs/screenshots/theme-dark.png) | ![Splitz Prestige theme](docs/screenshots/theme-prestige.png) |
+| ![Splitz light theme](docs/screenshots/en/theme-light.png) | ![Splitz dark theme](docs/screenshots/en/theme-dark.png) | ![Splitz Prestige theme](docs/screenshots/en/theme-prestige.png) |
 
 A trip, a shared flat, a team lunch — one person pays, everyone else owes their
 share, and at the end somebody has to work out who transfers what to whom.

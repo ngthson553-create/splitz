@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./public/og-image.png" alt="Splitz — chia tiền nhóm sòng phẳng trong vài chạm" width="760" />
+<img src="./docs/screenshots/og-vi.png" alt="Splitz — chia tiền nhóm sòng phẳng trong vài chạm" width="760" />
 
 # Splitz
 
@@ -16,13 +16,13 @@ Chạy offline · Không cần tài khoản · 5 kiểu chia · 62 ngân hàng V
 
 | Ghi khoản chi | Ai nợ ai | Quyết toán qua VietQR |
 |:---:|:---:|:---:|
-| ![Ghi khoản chi trong Splitz](docs/screenshots/expense.png) | ![Cân đối sau chuyến đi](docs/screenshots/settle.png) | ![Quyết toán bằng mã VietQR](docs/screenshots/qr.png) |
+| ![Ghi khoản chi trong Splitz](docs/screenshots/vi/expense.png) | ![Cân đối sau chuyến đi](docs/screenshots/vi/settle.png) | ![Quyết toán bằng mã VietQR](docs/screenshots/vi/qr.png) |
 
 **Ba giao diện**, trong đó **Prestige** — phong cách thẻ đen viền vàng dành riêng cho Premium:
 
 | Sáng | Tối | Prestige |
 |:---:|:---:|:---:|
-| ![Splitz giao diện sáng](docs/screenshots/theme-light.png) | ![Splitz giao diện tối](docs/screenshots/theme-dark.png) | ![Splitz giao diện Prestige](docs/screenshots/theme-prestige.png) |
+| ![Splitz giao diện sáng](docs/screenshots/vi/theme-light.png) | ![Splitz giao diện tối](docs/screenshots/vi/theme-dark.png) | ![Splitz giao diện Prestige](docs/screenshots/vi/theme-prestige.png) |
 
 Chuyến đi chơi, nhóm ở ghép, bữa ăn team — một người trả tiền, những người còn
 lại nợ phần của mình, và cuối cùng phải có ai đó ngồi tính xem ai chuyển cho ai
