@@ -11,6 +11,7 @@ import { format } from './format'
 import { group } from './group'
 import { home } from './home'
 import { legal } from './legal'
+import { payments } from './payments'
 import { settings } from './settings'
 
 export const en: typeof vi = {
@@ -26,5 +27,6 @@ export const en: typeof vi = {
   group,
   home,
   legal,
+  payments,
   settings,
 }

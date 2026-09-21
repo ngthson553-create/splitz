@@ -5,6 +5,12 @@ export type SplitMode = 'equal' | 'shares' | 'percent' | 'exact' | 'itemized'
 export type SettlementMethod = 'smart_settle' | 'maximize_reduction'
 export type MaxReductionMode = 'exact' | 'heuristic'
 
+// ── Phương thức nhận tiền theo thị trường ──
+// VietQR (VN) dùng field bank* cũ; các rail khác gọn trong paymentData.
+// Chuẩn từng thị trường được SINH OFFLINE thuần client (xem paymentQr.ts) —
+// không gọi API ngoài, đúng triết lý "Splitz không giữ tiền".
+export type PaymentRail = 'vietqr' | 'sepa' | 'upi' | 'promptpay' | 'pix' | 'handle'
+
 export type Member = {
   id: string
   name: string
@@ -13,6 +19,13 @@ export type Member = {
   bankCode?: string
   bankAccountNumber?: string
   bankAccountName?: string
+  /**
+   * Phương thức nhận tiền ngoài VietQR (SEPA/UPI/PromptPay/Pix/handle).
+   * VietQR dùng tiếp 3 field bank* phía trên để giữ tương thích dữ liệu cũ.
+   */
+  paymentRail?: Exclude<PaymentRail, 'vietqr'>
+  /** Dữ liệu rail: iban/vpa/proxyValue/pixKey/value… theo từng rail. */
+  paymentData?: Record<string, string>
   /** Cloud: tài khoản đã liên kết. null/undefined = thành viên "ảo" (chỉ tên). */
   userId?: string | null
   /** Cloud: ảnh đại diện lấy từ hồ sơ tài khoản (thành viên thật). */

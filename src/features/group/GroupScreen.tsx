@@ -9,6 +9,7 @@ import { buildGroupInsightStats } from '../../lib/insight'
 import { Avatar, Button, Card, Segmented } from '../../components/ui'
 import { settleState, type SettleState } from '../../lib/settlement'
 import { totalGroupSpend } from '../../lib/settlement/balances'
+import { resolveMemberPayment } from '../../lib/settlement/paymentQr'
 import { formatVnd } from '../../lib/format'
 import { useT } from '../../lib/i18n'
 import { ExpensesTab } from './ExpensesTab'
@@ -304,7 +305,7 @@ function GroupDesktopPanel({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold leading-snug line-clamp-2 break-words">{m.name}</p>
                   <p className="mt-0.5 text-xs text-muted line-clamp-1">
-                    {m.role === 'owner' ? t.group.owner : m.bankCode ? t.group.hasQr : t.group.members}
+                    {m.role === 'owner' ? t.group.owner : resolveMemberPayment(m) !== null ? t.group.hasQr : t.group.members}
                   </p>
                 </div>
               </div>

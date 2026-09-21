@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Crown, ShieldCheck } from 'lucide-react'
+import { Crown } from 'lucide-react'
 import { Sheet } from '../../components/Sheet'
 import { Avatar, Button, Field, Input } from '../../components/ui'
+import { PaymentMethodFields, type PaymentMethodValue } from '../../components/PaymentMethodFields'
 import { useStore } from '../../lib/store'
 import { useAuth } from '../../lib/auth'
 import { useT } from '../../lib/i18n'
 import { useConfirm } from '../../components/ConfirmDialog'
 import { useToast } from '../../components/Toast'
-import { BANK_GROUPS, bankDisplayName } from '../../lib/settlement/vietqr'
 import type { Group, Member } from '../../lib/types'
 
 export function MemberSheet({
@@ -26,42 +26,48 @@ export function MemberSheet({
   const t = useT()
 
   const [name, setName] = useState('')
-  const [bankCode, setBankCode] = useState('')
-  const [accountNumber, setAccountNumber] = useState('')
-  const [accountName, setAccountName] = useState('')
+  const [payout, setPayout] = useState<PaymentMethodValue>({
+    bankCode: '',
+    bankAccountNumber: '',
+    bankAccountName: '',
+  })
 
   useEffect(() => {
     if (member) {
       setName(member.name)
-      setBankCode(member.bankCode ?? '')
-      setAccountNumber(member.bankAccountNumber ?? '')
-      setAccountName(member.bankAccountName ?? '')
+      setPayout({
+        bankCode: member.bankCode ?? '',
+        bankAccountNumber: member.bankAccountNumber ?? '',
+        bankAccountName: member.bankAccountName ?? '',
+        paymentRail: member.paymentRail,
+        paymentData: member.paymentData,
+      })
     }
   }, [member])
 
   if (!member) return <Sheet open={false} onClose={onClose} title="">{null}</Sheet>
 
   const isCloud = mode === 'cloud'
-  // Thành viên "thật" (đã liên kết tài khoản) tự quản STK của họ — owner không sửa.
+  // Thành viên "thật" (đã liên kết tài khoản) hay thành viên ảo đều chỉnh được
+  // phần tài khoản nhận tiền (owner có thể nhập/sửa hộ rail cho thành viên ảo).
   const isReal = isCloud && Boolean(member.userId)
   const isMe = isCloud && member.userId === profile?.id
   const isOwner = !isCloud || group.ownerId === profile?.id
-  const hasBank = Boolean(member.bankCode && member.bankAccountNumber)
 
   async function save() {
     await updateGroup(group.id, (g) => ({
       ...g,
       members: g.members.map((m) =>
         m.id === member!.id
-          ? isReal
-            ? { ...m, name: name.trim() || m.name } // thật: chỉ đổi tên hiển thị, GIỮ STK
-            : {
-                ...m,
-                name: name.trim() || m.name,
-                bankCode: bankCode || undefined,
-                bankAccountNumber: accountNumber.trim() || undefined,
-                bankAccountName: accountName.trim() || undefined,
-              }
+          ? {
+              ...m,
+              name: name.trim() || m.name,
+              bankCode: payout.bankCode || undefined,
+              bankAccountNumber: payout.bankAccountNumber.trim() || undefined,
+              bankAccountName: payout.bankAccountName.trim() || undefined,
+              paymentRail: payout.paymentRail,
+              paymentData: payout.paymentData,
+            }
           : m,
       ),
     }))
@@ -113,69 +119,12 @@ export function MemberSheet({
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t.group.memberNamePlaceholder} />
         </Field>
 
-        {isReal ? (
-          // STK của thành viên thật — chỉ hiển thị, do họ tự quản.
-          <div className="pt-1">
-            <p className="text-sm font-semibold text-muted mb-1">{t.group.payoutAccount}</p>
-            <div className="flex items-start gap-2.5 p-3 rounded-2xl surface-sunken">
-              <ShieldCheck size={18} className="text-brand-600 dark:text-brand-300 mt-0.5 shrink-0" />
-              <div className="text-sm">
-                {hasBank ? (
-                  <p className="font-semibold">
-                    {bankDisplayName(member.bankCode)} · {member.bankAccountNumber}
-                  </p>
-                ) : (
-                  <p className="text-muted">{t.group.notConfigured}</p>
-                )}
-                <p className="text-xs text-faint mt-0.5">
-                  {t.group.selfManagedBankHint}
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          // Thành viên ảo — owner nhập STK hộ để tạo QR.
-          <div className="pt-1">
-            <p className="text-sm font-semibold text-muted mb-1">{t.group.payoutAccountQr}</p>
-            <div className="space-y-3">
-              <Field label={t.group.bankLabel}>
-                <select
-                  value={bankCode}
-                  onChange={(e) => setBankCode(e.target.value)}
-                  className="w-full h-12 px-4 rounded-2xl text-app surface-sunken border border-[var(--border)] focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30 outline-none"
-                >
-                  <option value="">{t.group.selectBank}</option>
-                  {BANK_GROUPS.map((grp) => (
-                    <optgroup key={grp.label} label={grp.label}>
-                      {grp.banks.map((b) => (
-                        <option key={b.code} value={b.code}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </Field>
-
-              <Field label={t.group.accountNumberLabel}>
-                <Input
-                  inputMode="numeric"
-                  value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value.replace(/[^\d]/g, ''))}
-                  placeholder={t.group.accountNumberPlaceholder}
-                />
-              </Field>
-
-              <Field label={t.group.accountNameLabel} hint={t.group.accountNameHint}>
-                <Input
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value.toUpperCase())}
-                  placeholder="NGUYEN VAN A"
-                />
-              </Field>
-            </div>
-          </div>
-        )}
+        {/* Tài khoản nhận tiền — cả thành viên ảo lẫn thật đều chỉnh được,
+            PaymentMethodFields hỗ trợ đủ 6 rail (VietQR/SEPA/UPI/PromptPay/Pix/handle). */}
+        <div className="pt-1">
+          <p className="text-sm font-semibold text-muted mb-1">{t.group.payoutAccountQr}</p>
+          <PaymentMethodFields value={payout} onChange={setPayout} onScanError={(m) => toast.error(m)} />
+        </div>
 
         {/* Phân quyền: chuyển quyền chủ nhóm cho thành viên thật khác */}
         {isOwner && isReal && !isMe && (

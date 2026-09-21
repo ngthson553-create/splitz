@@ -35,6 +35,8 @@ type MemberRow = {
   bank_code: string | null
   bank_account_number: string | null
   bank_account_name: string | null
+  payment_rail: string | null
+  payment_data: Record<string, string> | null
 }
 type ExpenseRow = {
   id: string
@@ -52,7 +54,8 @@ type ExpenseRow = {
 }
 
 const GROUP_COLS = 'id,owner_id,name,emoji,base_currency,settlement_method,created_at,updated_at'
-const MEMBER_COLS = 'id,group_id,user_id,name,color,role,bank_code,bank_account_number,bank_account_name'
+const MEMBER_COLS =
+  'id,group_id,user_id,name,color,role,bank_code,bank_account_number,bank_account_name,payment_rail,payment_data'
 const EXPENSE_COLS = 'id,group_id,title,note,paid_at,split_mode,amount_base,currency,amount_original,exchange_rate,created_by,version'
 const SETTLEMENT_COLS_V2 =
   'id,group_id,from_member_id,to_member_id,amount,status,payment_method,created_at,confirmed_at,proof_storage_path,proof_mime_type,proof_file_name,proof_size_bytes'
@@ -73,6 +76,8 @@ function mapMember(r: MemberRow, avatars: Map<string, string>): Member {
     bankCode: r.bank_code ?? undefined,
     bankAccountNumber: r.bank_account_number ?? undefined,
     bankAccountName: r.bank_account_name ?? undefined,
+    paymentRail: (r.payment_rail as Member['paymentRail']) ?? undefined,
+    paymentData: r.payment_data ?? undefined,
     userId: r.user_id,
     role: r.role,
     avatarUrl: r.user_id ? avatars.get(r.user_id) : undefined,
@@ -377,6 +382,8 @@ export class SupabaseGroupRepository implements GroupRepository {
         bank_code: m.bankCode ?? null,
         bank_account_number: m.bankAccountNumber ?? null,
         bank_account_name: m.bankAccountName ?? null,
+        payment_rail: m.paymentRail ?? null,
+        payment_data: m.paymentData ?? null,
       }))
       const { error } = await sb.from('group_members').insert(rows)
       if (error) throw error
@@ -392,6 +399,8 @@ export class SupabaseGroupRepository implements GroupRepository {
           bank_code: m.bankCode ?? null,
           bank_account_number: m.bankAccountNumber ?? null,
           bank_account_name: m.bankAccountName ?? null,
+          payment_rail: m.paymentRail ?? null,
+          payment_data: m.paymentData ?? null,
         })
         .eq('id', m.id)
       if (error) throw error
