@@ -9,8 +9,9 @@
 import { getSupabase } from './supabase/client'
 import { t } from './i18n'
 import type { Session } from '@supabase/supabase-js'
+import { runtimeEnv } from './env'
 
-const ZALO_APP_ID = import.meta.env.VITE_ZALO_APP_ID?.trim()
+const ZALO_APP_ID = runtimeEnv('VITE_ZALO_APP_ID')
 export const isZaloConfigured = Boolean(ZALO_APP_ID)
 
 const VERIFIER_KEY = 'splitz.zalo.pkce_verifier'

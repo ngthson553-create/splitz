@@ -1,7 +1,8 @@
 import { getSupabase } from './supabase/client'
 import { t } from './i18n'
+import { runtimeEnv } from './env'
 
-const VAPID_PUBLIC = import.meta.env.VITE_VAPID_PUBLIC_KEY?.trim()
+const VAPID_PUBLIC = runtimeEnv('VITE_VAPID_PUBLIC_KEY')
 
 export const isPushSupported =
   typeof navigator !== 'undefined' &&
