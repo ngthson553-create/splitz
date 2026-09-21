@@ -18,6 +18,12 @@ Chạy offline · Không cần tài khoản · 5 kiểu chia · 62 ngân hàng V
 |:---:|:---:|:---:|
 | ![Ghi khoản chi trong Splitz](docs/screenshots/vi/expense.png) | ![Cân đối sau chuyến đi](docs/screenshots/vi/settle.png) | ![Quyết toán bằng mã VietQR](docs/screenshots/vi/qr.png) |
 
+**Trên desktop**, cùng app đó mở thành thanh bên + lưới hai cột:
+
+| Bảng điều khiển | Không gian nhóm |
+|:---:|:---:|
+| ![Splitz dashboard bản desktop](docs/screenshots/vi/desktop-dashboard.png) | ![Splitz màn hình nhóm bản desktop](docs/screenshots/vi/desktop-group.png) |
+
 **Ba giao diện**, trong đó **Prestige** — phong cách thẻ đen viền vàng dành riêng cho Premium:
 
 | Sáng | Tối | Prestige |

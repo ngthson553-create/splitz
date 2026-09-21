@@ -22,7 +22,7 @@ export const settings: typeof vi.settings = {
   faq: 'FAQ',
   terms: 'Terms of Service',
   privacy: 'Privacy Policy',
-  tagline: 'Splitz v0.1 · Fair group expense splitting',
+  tagline: 'Splitz v1.1 · Fair group expense splitting',
 
   // Language screen
   languageSubtitle: 'Choose your display language',

@@ -18,6 +18,12 @@ Works offline · No account required · 5 ways to split · 62 Vietnamese banks
 |:---:|:---:|:---:|
 | ![Recording an expense in Splitz](docs/screenshots/en/expense.png) | ![Who owes whom after a trip](docs/screenshots/en/settle.png) | ![Settling a debt with a VietQR code](docs/screenshots/en/qr.png) |
 
+**On the desktop** the same app expands into a sidebar + two-column workspace:
+
+| Dashboard | Group workspace |
+|:---:|:---:|
+| ![Splitz dashboard on desktop](docs/screenshots/en/desktop-dashboard.png) | ![Splitz group screen on desktop](docs/screenshots/en/desktop-group.png) |
+
 **Three themes**, including **Prestige** — the black-and-gold look reserved for Premium:
 
 | Light | Dark | Prestige |

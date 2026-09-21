@@ -20,7 +20,7 @@ export const settings = {
   faq: 'Hỏi đáp',
   terms: 'Điều khoản sử dụng',
   privacy: 'Chính sách bảo mật',
-  tagline: 'Splitz v0.1 · Chia tiền nhóm sòng phẳng',
+  tagline: 'Splitz v1.1 · Chia tiền nhóm sòng phẳng',
 
   // Màn Ngôn ngữ
   languageSubtitle: 'Chọn ngôn ngữ hiển thị',
