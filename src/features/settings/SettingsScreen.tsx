@@ -16,6 +16,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../../lib/theme'
 import { useT } from '../../lib/i18n'
+import { formatDate } from '../../lib/format'
 import { useStore } from '../../lib/store'
 import { useProfile } from '../../lib/profile'
 import { useAuth } from '../../lib/auth'
@@ -131,6 +132,7 @@ function NavRow({ icon, label, to }: { icon: ReactNode; label: string; to: strin
 // ── Dòng gói (mở PlanSheet) ──
 function PlanRow() {
   const { info, isPremium, expiringSoon, daysLeft } = useSubscription()
+  const t = useT()
   const [open, setOpen] = useState(false)
   return (
     <>
@@ -142,15 +144,18 @@ function PlanRow() {
           <Crown size={17} />
         </span>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm">Gói {PLAN_LABEL[info.plan]}</p>
+          <p className="font-semibold text-sm">{t.settings.planLabel({ plan: PLAN_LABEL[info.plan] })}</p>
           <p className="text-xs text-muted truncate">
             {expiringSoon
-              ? `Sắp hết hạn trong ${daysLeft} ngày`
+              ? t.settings.expiringInDays({ n: daysLeft ?? 0 })
               : isPremium
                 ? info.periodEnd
-                  ? `Hết hạn ${new Date(info.periodEnd).toLocaleDateString('vi-VN')}`
-                  : 'Đang kích hoạt'
-                : `${info.groupCount}/${info.maxGroups ?? '∞'} nhóm · ${info.maxMembers} thành viên`}
+                  ? t.settings.expiresOn({ date: formatDate(info.periodEnd) })
+                  : t.settings.planActive
+                : t.settings.quotaLine({
+                    groups: `${info.groupCount}/${info.maxGroups ?? '∞'}`,
+                    members: String(info.maxMembers),
+                  })}
           </p>
         </div>
         <Badge tone={expiringSoon ? 'neg' : isPremium ? 'pos' : 'muted'}>
@@ -165,6 +170,7 @@ function PlanRow() {
 // ── Dòng thông báo đẩy (toggle inline) ──
 function NotificationRow() {
   const toast = useToast()
+  const t = useT()
   const [enabled, setEnabled] = useState(false)
   const [busy, setBusy] = useState(false)
   useEffect(() => {
@@ -178,14 +184,14 @@ function NotificationRow() {
       if (enabled) {
         await disablePush()
         setEnabled(false)
-        toast.success('Đã tắt thông báo đẩy')
+        toast.success(t.settings.pushDisabledToast)
       } else {
         await enablePush()
         setEnabled(true)
-        toast.success('Đã bật thông báo đẩy')
+        toast.success(t.settings.pushEnabledToast)
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Không đổi được thông báo.')
+      toast.error(e instanceof Error ? e.message : t.settings.pushToggleFailed)
     } finally {
       setBusy(false)
     }
@@ -197,13 +203,13 @@ function NotificationRow() {
         <Bell size={18} />
       </span>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm">Thông báo đẩy</p>
-        <p className="text-xs text-muted">Nhắc gia hạn gói, hoạt động nhóm</p>
+        <p className="font-semibold text-sm">{t.settings.pushTitle}</p>
+        <p className="text-xs text-muted">{t.settings.pushDesc}</p>
       </div>
       <button
         onClick={toggle}
         disabled={busy}
-        aria-label="Bật/tắt thông báo"
+        aria-label={t.settings.pushToggleAria}
         className="press relative h-8 w-14 rounded-full surface-sunken border border-[var(--border)] disabled:opacity-50 shrink-0"
       >
         <span
@@ -219,18 +225,21 @@ function NotificationRow() {
 // ── Dòng chuyển nhanh sáng/tối (toggle inline) ──
 function ThemeRow() {
   const { theme, toggle } = useTheme()
+  const t = useT()
   return (
     <div className="w-full flex items-center gap-3 p-3.5">
       <span className="grid place-items-center h-9 w-9 rounded-xl surface-sunken text-brand-600 dark:text-brand-300 shrink-0">
         {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm">Chế độ {theme === 'dark' ? 'Tối' : 'Sáng'}</p>
-        <p className="text-xs text-muted">Chạm để chuyển nhanh</p>
+        <p className="font-semibold text-sm">
+          {t.settings.themeMode({ mode: theme === 'dark' ? t.settings.themeDark : t.settings.themeLight })}
+        </p>
+        <p className="text-xs text-muted">{t.settings.themeQuickToggle}</p>
       </div>
       <button
         onClick={toggle}
-        aria-label="Chuyển chế độ sáng tối"
+        aria-label={t.settings.themeToggleAria}
         className="press relative h-8 w-14 rounded-full surface-sunken border border-[var(--border)] shrink-0"
       >
         <span

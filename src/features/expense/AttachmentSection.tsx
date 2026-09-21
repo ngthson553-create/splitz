@@ -4,6 +4,7 @@ import { useToast } from '../../components/Toast'
 import { useConfirm } from '../../components/ConfirmDialog'
 import { useStore } from '../../lib/store'
 import { useAuth } from '../../lib/auth'
+import { useT } from '../../lib/i18n'
 import {
   listAttachments,
   uploadAttachment,
@@ -20,6 +21,7 @@ export function AttachmentSection({ group, expenseId }: { group: Group; expenseI
   const { profile } = useAuth()
   const toast = useToast()
   const confirm = useConfirm()
+  const t = useT()
   const fileRef = useRef<HTMLInputElement>(null)
   const [items, setItems] = useState<Attachment[]>([])
   const [loading, setLoading] = useState(true)
@@ -52,15 +54,15 @@ export function AttachmentSection({ group, expenseId }: { group: Group; expenseI
     try {
       for (const f of files) {
         if (f.size > MAX_BYTES) {
-          toast.error(`"${f.name}" vượt 10MB.`)
+          toast.error(t.expense.fileTooLarge({ name: f.name }))
           continue
         }
         const att = await uploadAttachment(group.id, expenseId, f, myMemberId)
         setItems((prev) => [...prev, att])
       }
-      toast.success('Đã tải chứng từ lên')
+      toast.success(t.expense.attachmentUploaded)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Tải lên thất bại.')
+      toast.error(err instanceof Error ? err.message : t.expense.attachmentUploadFailed)
     } finally {
       setBusy(false)
     }
@@ -71,15 +73,15 @@ export function AttachmentSection({ group, expenseId }: { group: Group; expenseI
       const url = await signedUrl(att.storagePath)
       window.open(url, '_blank', 'noopener')
     } catch {
-      toast.error('Không mở được chứng từ.')
+      toast.error(t.expense.attachmentOpenFailed)
     }
   }
 
   async function remove(att: Attachment) {
     const ok = await confirm({
-      title: 'Xoá chứng từ?',
-      description: att.fileName ?? 'Tệp này sẽ bị xoá vĩnh viễn.',
-      confirmLabel: 'Xoá',
+      title: t.expense.deleteAttachmentConfirm,
+      description: att.fileName ?? t.expense.deleteAttachmentDescription,
+      confirmLabel: t.common.delete,
       danger: true,
     })
     if (!ok) return
@@ -87,7 +89,7 @@ export function AttachmentSection({ group, expenseId }: { group: Group; expenseI
       await removeAttachment(att)
       setItems((prev) => prev.filter((x) => x.id !== att.id))
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Không xoá được.')
+      toast.error(e instanceof Error ? e.message : t.expense.attachmentDeleteFailed)
     }
   }
 
@@ -97,21 +99,21 @@ export function AttachmentSection({ group, expenseId }: { group: Group; expenseI
     <section className="space-y-2">
       <div className="flex items-center justify-between">
         <h3 className="text-[13px] font-semibold text-muted flex items-center gap-1.5">
-          <Paperclip size={14} /> Chứng từ {items.length > 0 && `(${items.length})`}
+          <Paperclip size={14} /> {t.expense.attachments} {items.length > 0 && `(${items.length})`}
         </h3>
         <button
           onClick={() => fileRef.current?.click()}
           disabled={busy}
           className="press inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 dark:text-brand-300 disabled:opacity-50"
         >
-          {busy ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />} Thêm
+          {busy ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />} {t.common.add}
         </button>
       </div>
 
       {loading ? (
-        <p className="text-xs text-faint">Đang tải…</p>
+        <p className="text-xs text-faint">{t.common.loading}</p>
       ) : items.length === 0 ? (
-        <p className="text-xs text-faint">Chưa có chứng từ. Bấm “Thêm” để tải ảnh hoặc PDF.</p>
+        <p className="text-xs text-faint">{t.expense.attachmentsEmpty}</p>
       ) : (
         <div className="space-y-1.5">
           {items.map((att) => {
@@ -122,13 +124,13 @@ export function AttachmentSection({ group, expenseId }: { group: Group; expenseI
                   {isImg ? <ImageIcon size={16} /> : <FileText size={16} />}
                 </div>
                 <button onClick={() => open(att)} className="press min-w-0 flex-1 text-left">
-                  <p className="text-sm font-semibold truncate">{att.fileName ?? 'Chứng từ'}</p>
-                  <p className="text-xs text-muted">Bấm để xem</p>
+                  <p className="text-sm font-semibold truncate">{att.fileName ?? t.expense.attachmentFallbackName}</p>
+                  <p className="text-xs text-muted">{t.expense.tapToView}</p>
                 </button>
                 <button
                   onClick={() => remove(att)}
                   className="press grid place-items-center h-8 w-8 rounded-lg text-faint hover:text-neg shrink-0"
-                  aria-label="Xoá chứng từ"
+                  aria-label={t.expense.deleteAttachment}
                 >
                   <Trash2 size={15} />
                 </button>

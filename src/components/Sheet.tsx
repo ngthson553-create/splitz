@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { IconButton } from './ui'
 import { overlayMotion, sheetMotion } from '../lib/motion'
+import { useT } from '../lib/i18n'
 
 export function Sheet({
   open,
@@ -18,6 +19,7 @@ export function Sheet({
   children: ReactNode
   footer?: ReactNode
 }) {
+  const t = useT()
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -66,7 +68,7 @@ export function Sheet({
             <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0 cursor-grab active:cursor-grabbing">
               <span className="absolute left-1/2 -translate-x-1/2 top-2 h-1.5 w-10 rounded-full bg-[var(--border-strong)] sm:hidden" />
               <h2 className="text-base font-bold text-app">{title}</h2>
-              <IconButton onClick={onClose} aria-label="Đóng" className="h-9 w-9">
+              <IconButton onClick={onClose} aria-label={t.common.close} className="h-9 w-9">
                 <X size={18} />
               </IconButton>
             </div>

@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { Crown, Sparkles, X } from 'lucide-react'
 import { useStore } from '../../lib/store'
 import { useSubscription } from '../../lib/subscription'
+import { useT } from '../../lib/i18n'
 import { trackEvent } from '../../lib/analytics'
 import { PlanSheet } from './PlanSheet'
 
@@ -37,6 +38,7 @@ function write(s: PromptState) {
 export function UpgradePrompt() {
   const { mode } = useStore()
   const { isPremium, loading } = useSubscription()
+  const t = useT()
   const [show, setShow] = useState(false)
   const [planOpen, setPlanOpen] = useState(false)
 
@@ -123,7 +125,7 @@ export function UpgradePrompt() {
                 />
                 <button
                   onClick={dismiss}
-                  aria-label="Đóng"
+                  aria-label={t.settings.closeAria}
                   className="absolute top-4 right-4 grid place-items-center h-8 w-8 rounded-lg text-[#c8bb98] hover:text-[#f6f0e2]"
                 >
                   <X size={18} />
@@ -142,20 +144,19 @@ export function UpgradePrompt() {
                     <Crown size={26} className="text-[#1a1408]" />
                   </span>
 
-                  <h2 className="text-xl font-extrabold text-[#f6f0e2]">Mở khoá Splitz Premium</h2>
+                  <h2 className="text-xl font-extrabold text-[#f6f0e2]">{t.settings.unlockTitle}</h2>
                   <p className="text-sm text-[#c8bb98] mt-1.5">
-                    Không giới hạn nhóm, gộp công nợ liên nhóm, quỹ nhóm, chi định kỳ — cùng giao
-                    diện Prestige thẻ đen viền vàng.
+                    {t.settings.unlockDesc}
                   </p>
 
                   <ul className="mt-4 space-y-2">
                     {[
-                      'Không giới hạn nhóm · 25 thành viên/nhóm',
-                      'AI nhập chi không giới hạn',
-                      'Giao diện Prestige độc quyền',
-                    ].map((t) => (
-                      <li key={t} className="flex items-center gap-2 text-sm text-[#e8dfc9]">
-                        <Sparkles size={15} className="text-[#e3c578] shrink-0" /> {t}
+                      t.settings.perkUnlimited,
+                      t.settings.perkAi,
+                      t.settings.perkPrestige,
+                    ].map((perk) => (
+                      <li key={perk} className="flex items-center gap-2 text-sm text-[#e8dfc9]">
+                        <Sparkles size={15} className="text-[#e3c578] shrink-0" /> {perk}
                       </li>
                     ))}
                   </ul>
@@ -170,15 +171,15 @@ export function UpgradePrompt() {
                         '0 1px 0 rgba(255,246,214,0.7) inset, 0 16px 40px -12px rgba(212,175,95,0.6)',
                     }}
                   >
-                    Xem các gói
+                    {t.settings.viewPlans}
                   </button>
                   <div className="flex items-center justify-center gap-4 mt-3">
                     <button onClick={dismiss} className="text-xs text-[#9a8e6f] hover:text-[#c8bb98]">
-                      Để sau
+                      {t.settings.later}
                     </button>
                     <span className="text-[#3a342400]">·</span>
                     <button onClick={never} className="text-xs text-[#9a8e6f] hover:text-[#c8bb98]">
-                      Không nhắc nữa
+                      {t.settings.neverAgain}
                     </button>
                   </div>
                 </div>

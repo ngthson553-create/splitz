@@ -1,4 +1,5 @@
 import { getSupabase } from '../supabase/client'
+import { t } from '../i18n'
 import type { ParsedExpense } from './parseExpense'
 
 async function fnError(error: unknown): Promise<never> {
@@ -11,7 +12,7 @@ async function fnError(error: unknown): Promise<never> {
       if (e instanceof Error && e.message) throw e
     }
   }
-  throw error instanceof Error ? error : new Error('Không phân tích được.')
+  throw error instanceof Error ? error : new Error(t().errors.parseFailed)
 }
 
 export type RemoteParseResult = {
@@ -31,6 +32,6 @@ export async function parseExpenseRemote(
     body: { text, memberNames },
   })
   if (error) await fnError(error)
-  if (!data?.parsed) throw new Error('Không phân tích được.')
+  if (!data?.parsed) throw new Error(t().errors.parseFailed)
   return data as RemoteParseResult
 }

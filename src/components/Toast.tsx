@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { Check, Info, TriangleAlert, X } from 'lucide-react'
 import { spring } from '../lib/motion'
+import { t, useT } from '../lib/i18n'
 
 type ToastTone = 'success' | 'error' | 'info'
 type ToastItem = { id: number; message: string; tone: ToastTone }
@@ -23,7 +24,8 @@ const ToastContext = createContext<ToastContextValue | null>(null)
 
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext)
-  if (!ctx) throw new Error('useToast phải nằm trong ToastProvider.')
+  if (!ctx)
+    throw new Error(t().errors.hookOutsideProvider.replace('{fn}', 'useToast').replace('{provider}', 'ToastProvider'))
   return ctx
 }
 
@@ -41,9 +43,11 @@ const TONE: Record<ToastTone, string> = {
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([])
   const seq = useRef(0)
+  const t = useT()
+  const closeLabel = t.common.close
 
   const remove = useCallback((id: number) => {
-    setItems((prev) => prev.filter((t) => t.id !== id))
+    setItems((prev) => prev.filter((item) => item.id !== id))
   }, [])
 
   const show = useCallback(
@@ -66,21 +70,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="fixed inset-x-0 top-0 z-[60] flex flex-col items-center gap-2 px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pointer-events-none">
         <AnimatePresence>
-          {items.map((t) => (
+          {items.map((item) => (
             <motion.div
-              key={t.id}
+              key={item.id}
               layout
               initial={{ opacity: 0, y: -20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1, transition: spring }}
               exit={{ opacity: 0, y: -12, scale: 0.95, transition: { duration: 0.18 } }}
               className="pointer-events-auto w-full max-w-sm glass rounded-2xl px-4 py-3 flex items-center gap-3 border border-[var(--border-strong)] shadow-glow"
             >
-              <span className={TONE[t.tone]}>{ICON[t.tone]}</span>
-              <p className="flex-1 text-sm font-medium text-app">{t.message}</p>
+              <span className={TONE[item.tone]}>{ICON[item.tone]}</span>
+              <p className="flex-1 text-sm font-medium text-app">{item.message}</p>
               <button
-                onClick={() => remove(t.id)}
+                onClick={() => remove(item.id)}
                 className="press text-faint hover:text-app"
-                aria-label="Đóng"
+                aria-label={closeLabel}
               >
                 <X size={15} />
               </button>

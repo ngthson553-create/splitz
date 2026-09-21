@@ -10,12 +10,14 @@ import {
 } from 'lucide-react'
 import { Sheet } from '../../components/Sheet'
 import { Avatar, Badge } from '../../components/ui'
+import { useT } from '../../lib/i18n'
 import { formatVnd } from '../../lib/format'
 import { useSubscription } from '../../lib/subscription'
 import type { CrossGroupDebtItem, CrossGroupDebtSummary } from '../../lib/crossGroupDebt'
 import { PlanSheet } from '../settings/PlanSheet'
 
 export function CrossGroupDebtPanel({ summary }: { summary: CrossGroupDebtSummary }) {
+  const t = useT()
   const { isPremium } = useSubscription()
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [planOpen, setPlanOpen] = useState(false)
@@ -37,14 +39,14 @@ export function CrossGroupDebtPanel({ summary }: { summary: CrossGroupDebtSummar
           </span>
           <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5 text-sm font-bold leading-snug text-app">
-            Gộp công nợ liên nhóm <Crown size={13} className="text-brand-600 dark:text-brand-300" />
+            {t.home.crossGroupTitle} <Crown size={13} className="text-brand-600 dark:text-brand-300" />
           </span>
             <span className="block text-xs text-muted leading-snug line-clamp-2 break-words">
-              Có thể gộp với {personCount} người qua nhiều nhóm.
+              {t.home.crossGroupMergeHint({ n: personCount })}
             </span>
           </span>
           <span className="text-xs font-bold text-brand-600 dark:text-brand-300 shrink-0">
-            Mở khoá
+            {t.home.unlock}
           </span>
         </button>
         <PlanSheet open={planOpen} onClose={() => setPlanOpen(false)} />
@@ -62,9 +64,9 @@ export function CrossGroupDebtPanel({ summary }: { summary: CrossGroupDebtSummar
           <GitMerge size={18} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-bold text-app">Gộp công nợ liên nhóm</span>
+          <span className="block text-sm font-bold text-app">{t.home.crossGroupTitle}</span>
           <span className="block text-xs text-muted leading-snug line-clamp-2 break-words">
-            {top.direction === 'pay' ? 'Bạn trả' : 'Bạn nhận'} {formatVnd(top.netAmount)} · {top.otherName}
+            {top.direction === 'pay' ? t.home.youPay : t.home.youReceive} {formatVnd(top.netAmount)} · {top.otherName}
           </span>
         </span>
         <span className="grid place-items-center h-8 w-8 rounded-xl surface-sunken text-brand-600 dark:text-brand-300 shrink-0">
@@ -89,12 +91,13 @@ function CrossGroupDebtSheet({
   onClose: () => void
   summary: CrossGroupDebtSummary
 }) {
+  const t = useT()
   return (
-    <Sheet open={open} onClose={onClose} title="Gộp công nợ liên nhóm">
+    <Sheet open={open} onClose={onClose} title={t.home.crossGroupTitle}>
       <div className="space-y-3 py-1">
         <div className="grid grid-cols-2 gap-2">
-          <TotalBox label="Cần trả" value={summary.totalToPay} tone="neg" />
-          <TotalBox label="Được nhận" value={summary.totalToReceive} tone="pos" />
+          <TotalBox label={t.home.totalToPay} value={summary.totalToPay} tone="neg" />
+          <TotalBox label={t.home.toReceive} value={summary.totalToReceive} tone="pos" />
         </div>
 
         <div className="space-y-2.5">
@@ -119,6 +122,7 @@ function TotalBox({ label, value, tone }: { label: string; value: number; tone: 
 }
 
 function DebtPersonCard({ item, onClose }: { item: CrossGroupDebtItem; onClose: () => void }) {
+  const t = useT()
   const navigate = useNavigate()
   const receiving = item.direction === 'receive'
 
@@ -138,11 +142,11 @@ function DebtPersonCard({ item, onClose }: { item: CrossGroupDebtItem; onClose: 
         />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold leading-snug text-app line-clamp-2 break-words">{item.otherName}</p>
-          <p className="text-xs text-muted">{item.groupCount} nhóm chung</p>
+          <p className="text-xs text-muted">{t.home.sharedGroups({ n: item.groupCount })}</p>
         </div>
         <Badge tone={receiving ? 'pos' : 'neg'}>
           {receiving ? <ArrowDownLeft size={12} /> : <ArrowUpRight size={12} />}
-          {receiving ? 'Nhận' : 'Trả'} {formatVnd(item.netAmount)}
+          {receiving ? t.home.receiveShort : t.home.payShort} {formatVnd(item.netAmount)}
         </Badge>
       </div>
 
@@ -158,7 +162,7 @@ function DebtPersonCard({ item, onClose }: { item: CrossGroupDebtItem; onClose: 
               <span className="text-lg shrink-0">{group.groupEmoji ?? '💸'}</span>
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold leading-snug line-clamp-2 break-words">{group.groupName}</span>
-                <span className="block text-[11px] text-muted">Mở tab quyết toán</span>
+                <span className="block text-[11px] text-muted">{t.home.openSettleTab}</span>
               </span>
               <span
                 className={`text-xs font-extrabold tnum shrink-0 ${groupReceiving ? 'text-pos' : 'text-neg'}`}

@@ -1,4 +1,5 @@
 import { getSupabase } from './supabase/client'
+import { t } from './i18n'
 
 const VAPID_PUBLIC = import.meta.env.VITE_VAPID_PUBLIC_KEY?.trim()
 
@@ -23,9 +24,9 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
 
 /** Xin quyền, đăng ký service worker + push, lưu subscription vào DB. */
 export async function enablePush(): Promise<void> {
-  if (!isPushConfigured) throw new Error('Trình duyệt không hỗ trợ hoặc chưa cấu hình thông báo đẩy.')
+  if (!isPushConfigured) throw new Error(t().errors.pushUnsupported)
   const permission = await Notification.requestPermission()
-  if (permission !== 'granted') throw new Error('Bạn chưa cho phép nhận thông báo.')
+  if (permission !== 'granted') throw new Error(t().errors.pushPermissionDenied)
 
   const reg = await navigator.serviceWorker.register('/sw.js')
   await navigator.serviceWorker.ready
@@ -36,7 +37,7 @@ export async function enablePush(): Promise<void> {
   const json = sub.toJSON()
   const sb = getSupabase()
   const { data: u } = await sb.auth.getUser()
-  if (!u.user) throw new Error('Chưa đăng nhập.')
+  if (!u.user) throw new Error(t().errors.notSignedIn)
   const { error } = await sb.from('push_subscriptions').upsert(
     {
       user_id: u.user.id,

@@ -2,6 +2,7 @@ import type { Expense, Group, Settlement } from '../types'
 import type { GroupRepository } from './repository'
 import { createGroup as makeGroup } from '../groupFactory'
 import { newId } from '../id'
+import { t } from '../i18n'
 
 const KEY = 'splitz.groups.v1'
 
@@ -48,7 +49,7 @@ export class LocalGroupRepository implements GroupRepository {
   async saveExpense(groupId: string, expense: Expense): Promise<{ id: string; version: number }> {
     const all = readAll()
     const g = all.find((x) => x.id === groupId)
-    if (!g) throw new Error('Nhóm không tồn tại.')
+    if (!g) throw new Error(t().errors.groupMissing)
     const i = g.expenses.findIndex((e) => e.id === expense.id)
     if (i >= 0) g.expenses[i] = expense
     else g.expenses.push(expense)
@@ -74,7 +75,7 @@ export class LocalGroupRepository implements GroupRepository {
   ): Promise<string> {
     const all = readAll()
     const g = all.find((x) => x.id === groupId)
-    if (!g) throw new Error('Nhóm không tồn tại.')
+    if (!g) throw new Error(t().errors.groupMissing)
     const createdAt = new Date().toISOString()
     const settlement: Settlement = {
       id: newId('stl'),

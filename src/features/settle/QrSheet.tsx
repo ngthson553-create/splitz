@@ -8,6 +8,7 @@ import { uploadSettlementProof } from '../../lib/data/attachments'
 import { errorMessage } from '../../lib/data/errors'
 import { formatVnd } from '../../lib/format'
 import { bankDisplayName, generateVietQR } from '../../lib/settlement/vietqr'
+import { useT } from '../../lib/i18n'
 import { useStore } from '../../lib/store'
 import { trackEvent } from '../../lib/analytics'
 import type { Group, SettlementTransfer } from '../../lib/types'
@@ -25,6 +26,7 @@ export function QrSheet({
 }) {
   const { createSettlement, reload } = useStore()
   const toast = useToast()
+  const t = useT()
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState<'paid' | 'proof' | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -57,27 +59,27 @@ export function QrSheet({
     try {
       await navigator.clipboard.writeText(to.bankAccountNumber)
       setCopied(true)
-      toast.success('Đã sao chép số tài khoản')
+      toast.success(t.group.accountCopiedToast)
       window.setTimeout(() => setCopied(false), 1500)
     } catch {
-      toast.error('Không sao chép được')
+      toast.error(t.group.copyError)
     }
   }
 
   async function markPaid() {
     if (!transfer) return
     if (!hasBank) {
-      toast.error('Chưa tạo được QR cho khoản này. Hãy thanh toán cách khác và đính kèm chứng từ.')
+      toast.error(t.group.qrUnavailableToast)
       return
     }
     setBusy('paid')
     try {
       await createSettlement(group.id, transfer.fromMemberId, transfer.toMemberId, transfer.amount)
       trackEvent('settlement_marked_paid', { amount_vnd: transfer.amount, method: 'bank_transfer' })
-      toast.success('Đã ghi nhận. Chờ người nhận xác nhận.')
+      toast.success(t.group.markedPaidToast)
       onClose()
     } catch (e) {
-      toast.error(errorMessage(e, 'Không ghi nhận được.'))
+      toast.error(errorMessage(e, t.group.markPaidError))
     } finally {
       setBusy(null)
     }
@@ -88,7 +90,7 @@ export function QrSheet({
     e.target.value = ''
     if (!transfer || !file) return
     if (file.size > MAX_PROOF_BYTES) {
-      toast.error('Chứng từ vượt 10MB.')
+      toast.error(t.group.proofTooLarge)
       return
     }
 
@@ -99,15 +101,15 @@ export function QrSheet({
       await uploadSettlementProof(group.id, settlementId, file)
       void reload()
       trackEvent('settlement_proof_uploaded', { amount_vnd: transfer.amount, mime: file.type || 'unknown' })
-      toast.success('Đã ghi nhận kèm chứng từ. Chờ người nhận xác nhận.')
+      toast.success(t.group.proofUploadedToast)
       onClose()
     } catch (e) {
       if (settlementId) {
         void reload()
-        toast.error('Đã ghi nhận chuyển tiền nhưng chưa đính kèm được chứng từ.')
+        toast.error(t.group.proofFailedToast)
         onClose()
       } else {
-        toast.error(errorMessage(e, 'Không tải được chứng từ thanh toán.'))
+        toast.error(errorMessage(e, t.group.proofUploadError))
       }
     } finally {
       setBusy(null)
@@ -118,13 +120,13 @@ export function QrSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Thanh toán khoản nợ"
+      title={t.group.qrSheetTitle}
       footer={
         transfer ? (
           <div className="space-y-2">
             <Button fullWidth onClick={() => void markPaid()} disabled={busy !== null || !canMarkPaid}>
               {busy === 'paid' ? <Loader2 size={16} className="animate-spin" /> : null}
-              Tôi đã chuyển
+              {t.group.iHavePaid}
             </Button>
             <Button
               fullWidth
@@ -133,7 +135,7 @@ export function QrSheet({
               disabled={busy !== null}
             >
               {busy === 'proof' ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
-              Thanh toán cách khác + chứng từ
+              {t.group.payOtherWay}
             </Button>
           </div>
         ) : undefined
@@ -170,22 +172,23 @@ export function QrSheet({
                 </div>
               </div>
               <div className="card p-3 space-y-1.5 text-sm">
-                <Row label="Ngân hàng" value={bankDisplayName(to.bankCode)} icon={<Landmark size={14} />} />
+                <Row label={t.group.bankLabel} value={bankDisplayName(to.bankCode)} icon={<Landmark size={14} />} />
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted">Số tài khoản</span>
+                  <span className="text-muted">{t.group.accountNumberLabel}</span>
                   <button onClick={copyAccount} className="press inline-flex items-center gap-1.5 font-semibold text-app tnum">
                     {to.bankAccountNumber}
                     {copied ? <Check size={14} className="text-pos" /> : <Copy size={14} className="text-faint" />}
                   </button>
                 </div>
-                {to.bankAccountName && <Row label="Chủ tài khoản" value={to.bankAccountName} />}
+                {to.bankAccountName && <Row label={t.group.accountHolder} value={to.bankAccountName} />}
               </div>
               <p className="text-xs text-faint text-center px-2">
-                Mở app ngân hàng, quét QR và <b>kiểm tra tên người nhận</b> trước khi xác nhận chuyển.
+                {t.group.qrHintStart}
+                <b>{t.group.qrHintHighlight}</b>
+                {t.group.qrHintEnd}
               </p>
               <p className="text-xs text-faint text-center px-2">
-                Nếu bạn đã thanh toán bằng tiền mặt, app khác hoặc gửi ảnh biên lai, hãy dùng nút
-                chứng từ bên dưới để người nhận xác nhận dễ hơn.
+                {t.group.altPaymentHint}
               </p>
             </>
           ) : (
@@ -194,10 +197,11 @@ export function QrSheet({
                 <TriangleAlert size={22} />
               </div>
               <p className="text-sm text-muted">
-                <b className="text-app">{to.name}</b> chưa có tài khoản nhận tiền. Thêm thông tin ngân hàng trong Cài đặt nhóm để tạo QR.
+                <b className="text-app">{to.name}</b>
+                {t.group.noBankHint}
               </p>
               <p className="text-xs text-faint">
-                Bạn vẫn có thể thanh toán cách khác và đính kèm chứng từ ở nút bên dưới.
+                {t.group.altPaymentStillHint}
               </p>
             </div>
           )}

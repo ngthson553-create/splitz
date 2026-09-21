@@ -4,17 +4,13 @@ import { Sheet } from '../../components/Sheet'
 import { Badge } from '../../components/ui'
 import { listExpenseHistory } from '../../lib/data/expenseHistory'
 import { formatRelative } from '../../lib/format'
+import { useT } from '../../lib/i18n'
 import { useStore } from '../../lib/store'
 import type { ExpenseHistoryAction, ExpenseHistoryEntry } from '../../lib/expenseHistory'
 
-const ACTION_LABEL: Record<ExpenseHistoryAction, string> = {
-  'expense.create': 'Thêm',
-  'expense.update': 'Sửa',
-  'expense.delete': 'Xoá',
-}
-
 export function ExpenseHistorySection({ groupId, expenseId }: { groupId: string; expenseId: string }) {
   const { mode } = useStore()
+  const t = useT()
   const [items, setItems] = useState<ExpenseHistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
@@ -36,22 +32,22 @@ export function ExpenseHistorySection({ groupId, expenseId }: { groupId: string;
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-[13px] font-semibold text-muted flex items-center gap-1.5">
-          <History size={14} /> Lịch sử chỉnh sửa {items.length > 0 && `(${items.length})`}
+          <History size={14} /> {t.expense.historyTitle} {items.length > 0 && `(${items.length})`}
         </h3>
         {items.length > 2 && (
           <button
             onClick={() => setOpen(true)}
             className="press text-xs font-semibold text-brand-600 dark:text-brand-300"
           >
-            Xem tất cả
+            {t.expense.viewAll}
           </button>
         )}
       </div>
 
       {loading ? (
-        <p className="text-xs text-faint">Đang tải…</p>
+        <p className="text-xs text-faint">{t.common.loading}</p>
       ) : items.length === 0 ? (
-        <p className="text-xs text-faint">Chưa có lần chỉnh sửa nào được ghi nhận.</p>
+        <p className="text-xs text-faint">{t.expense.historyEmpty}</p>
       ) : (
         <div className="space-y-1.5">
           {preview.map((item) => (
@@ -60,7 +56,7 @@ export function ExpenseHistorySection({ groupId, expenseId }: { groupId: string;
         </div>
       )}
 
-      <Sheet open={open} onClose={() => setOpen(false)} title="Lịch sử chỉnh sửa">
+      <Sheet open={open} onClose={() => setOpen(false)} title={t.expense.historyTitle}>
         <div className="space-y-2.5 py-1">
           {items.map((item) => (
             <HistoryRow key={item.id} item={item} />
@@ -72,6 +68,12 @@ export function ExpenseHistorySection({ groupId, expenseId }: { groupId: string;
 }
 
 function HistoryRow({ item, compact = false }: { item: ExpenseHistoryEntry; compact?: boolean }) {
+  const t = useT()
+  const ACTION_LABEL: Record<ExpenseHistoryAction, string> = {
+    'expense.create': t.common.add,
+    'expense.update': t.common.edit,
+    'expense.delete': t.common.delete,
+  }
   return (
     <div className="rounded-2xl surface-sunken border border-[var(--border)] p-3 space-y-2">
       <div className="flex items-start gap-2.5">
@@ -81,7 +83,7 @@ function HistoryRow({ item, compact = false }: { item: ExpenseHistoryEntry; comp
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-app truncate">{item.summary}</p>
           <p className="text-[11px] text-muted">
-            {item.actorName ?? 'Ai đó'} · {formatRelative(item.createdAt)}
+            {item.actorName ?? t.expense.someone} · {formatRelative(item.createdAt)}
           </p>
         </div>
         <Badge tone={item.action === 'expense.delete' ? 'neg' : 'brand'} className="shrink-0">
@@ -102,7 +104,7 @@ function HistoryRow({ item, compact = false }: { item: ExpenseHistoryEntry; comp
             </div>
           ))}
           {compact && item.changes.length > 2 && (
-            <p className="text-[11px] text-faint">+{item.changes.length - 2} thay đổi khác</p>
+            <p className="text-[11px] text-faint">{t.expense.moreChanges({ n: item.changes.length - 2 })}</p>
           )}
         </div>
       )}

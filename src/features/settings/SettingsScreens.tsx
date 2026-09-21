@@ -17,13 +17,14 @@ import { fileToAvatarDataUrl } from '../../lib/image'
 // ── Shell chung cho các trang con Cài đặt ──
 function SettingsShell({ title, children }: { title: string; children: ReactNode }) {
   const navigate = useNavigate()
+  const t = useT()
   return (
     <PageTransition>
       <div className="px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-24 space-y-5">
         <header className="flex items-center gap-3">
           <button
             onClick={() => navigate('/settings')}
-            aria-label="Quay lại"
+            aria-label={t.settings.back}
             className="press grid place-items-center h-10 w-10 rounded-xl bg-[var(--surface-solid)] border border-[var(--border)] text-muted hover:text-app"
           >
             <ArrowLeft size={18} />
@@ -43,6 +44,7 @@ export function ProfileSettingsScreen() {
   const auth = useAuth()
   const confirm = useConfirm()
   const toast = useToast()
+  const t = useT()
   const fileRef = useRef<HTMLInputElement>(null)
   const [nameDraft, setNameDraft] = useState(profile.name)
   useEffect(() => setNameDraft(profile.name), [profile.name])
@@ -51,28 +53,28 @@ export function ProfileSettingsScreen() {
 
   function saveName() {
     setName(nameDraft)
-    toast.success('Đã lưu hồ sơ')
+    toast.success(t.settings.profileSaved)
   }
 
   async function onPickAvatar(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    if (!file.type.startsWith('image/')) return toast.error('Vui lòng chọn tệp ảnh')
+    if (!file.type.startsWith('image/')) return toast.error(t.settings.imageFileRequired)
     try {
       const url = await fileToAvatarDataUrl(file)
       setAvatar(url)
-      toast.success('Đã cập nhật ảnh đại diện')
+      toast.success(t.settings.avatarUpdated)
     } catch {
-      toast.error('Không xử lý được ảnh')
+      toast.error(t.settings.avatarError)
     }
   }
 
   async function doSignOut() {
     const ok = await confirm({
-      title: 'Đăng xuất?',
-      description: 'Bạn sẽ cần đăng nhập lại để tiếp tục dùng Splitz.',
-      confirmLabel: 'Đăng xuất',
+      title: t.settings.signOutConfirmTitle,
+      description: t.settings.signOutConfirmDesc,
+      confirmLabel: t.settings.signOut,
       danger: true,
     })
     if (!ok) return
@@ -80,9 +82,9 @@ export function ProfileSettingsScreen() {
   }
 
   return (
-    <SettingsShell title="Hồ sơ">
+    <SettingsShell title={t.settings.profileTitle}>
       <Card className="flex flex-col items-center text-center gap-3 py-6">
-        <button onClick={() => fileRef.current?.click()} className="press relative" aria-label="Đổi ảnh đại diện">
+        <button onClick={() => fileRef.current?.click()} className="press relative" aria-label={t.settings.changeAvatar}>
           <Avatar name={nameDraft || '?'} color="indigo" size="lg" src={profile.avatarUrl} className="!h-20 !w-20 !text-2xl" />
           <span className="absolute -bottom-1 -right-1 grid place-items-center h-7 w-7 rounded-full gradient-brand text-white ring-2 ring-[var(--surface-solid)]">
             <Camera size={14} />
@@ -92,11 +94,11 @@ export function ProfileSettingsScreen() {
           <button
             onClick={() => {
               setAvatar(undefined)
-              toast.success('Đã gỡ ảnh đại diện')
+              toast.success(t.settings.avatarRemoved)
             }}
             className="press inline-flex items-center gap-1 text-xs text-faint hover:text-neg"
           >
-            <X size={13} /> Gỡ ảnh
+            <X size={13} /> {t.settings.removeAvatar}
           </button>
         )}
         {isCloud && auth.session?.user.email && (
@@ -106,15 +108,15 @@ export function ProfileSettingsScreen() {
       </Card>
 
       <Card>
-        <Field label="Tên hiển thị" hint="Tên này hiển thị cho các thành viên trong nhóm của bạn.">
+        <Field label={t.settings.displayNameLabel} hint={t.settings.displayNameHint}>
           <div className="flex gap-2">
             <Input
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
-              placeholder="Nhập tên của bạn"
+              placeholder={t.settings.namePlaceholder}
             />
             <Button onClick={saveName} disabled={nameDraft.trim() === profile.name}>
-              Lưu
+              {t.settings.save}
             </Button>
           </div>
         </Field>
@@ -122,7 +124,7 @@ export function ProfileSettingsScreen() {
 
       {isCloud && (
         <Button variant="secondary" fullWidth onClick={doSignOut}>
-          <LogOut size={16} /> Đăng xuất
+          <LogOut size={16} /> {t.settings.signOut}
         </Button>
       )}
     </SettingsShell>
@@ -135,6 +137,7 @@ export function BankSettingsScreen() {
   const { profile, updateProfile } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
+  const t = useT()
   const [bank, setBank] = useState<BankValue>({ bankCode: '', accountNumber: '', accountName: '' })
   const [saving, setSaving] = useState(false)
 
@@ -159,7 +162,7 @@ export function BankSettingsScreen() {
 
   async function save() {
     if (!bank.bankCode || !bank.accountNumber.trim() || !bank.accountName.trim()) {
-      toast.error('Điền đủ thông tin ngân hàng.')
+      toast.error(t.settings.bankMissing)
       return
     }
     setSaving(true)
@@ -169,23 +172,21 @@ export function BankSettingsScreen() {
         bankAccountNumber: bank.accountNumber,
         bankAccountName: bank.accountName,
       })
-      toast.success('Đã lưu tài khoản nhận tiền')
+      toast.success(t.settings.bankSaved)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Không lưu được.')
+      toast.error(e instanceof Error ? e.message : t.settings.saveFailed)
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <SettingsShell title="Tài khoản nhận tiền">
+    <SettingsShell title={t.settings.bankTitle}>
       <Card className="space-y-3">
-        <p className="text-sm text-muted">
-          Thông tin này để các thành viên cùng nhóm tạo mã QR chuyển khoản cho bạn.
-        </p>
+        <p className="text-sm text-muted">{t.settings.bankInfoDesc}</p>
         <BankFields value={bank} onChange={setBank} onScanError={(m) => toast.error(m)} />
         <Button fullWidth onClick={save} disabled={!changed || saving}>
-          Lưu tài khoản
+          {t.settings.saveBank}
         </Button>
       </Card>
     </SettingsShell>
@@ -197,17 +198,18 @@ export function AppearanceSettingsScreen() {
   const { theme, setTheme, toggle } = useTheme()
   const { isPremium } = useSubscription()
   const toast = useToast()
+  const t = useT()
 
   function pickPrestige() {
     if (!isPremium) {
-      toast.error('Giao diện Prestige chỉ dành cho thành viên Premium.')
+      toast.error(t.settings.prestigePremiumOnly)
       return
     }
     setTheme('prestige')
   }
 
   return (
-    <SettingsShell title="Giao diện">
+    <SettingsShell title={t.settings.appearanceTitle}>
       <Card className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -216,15 +218,15 @@ export function AppearanceSettingsScreen() {
             </div>
             <div>
               <p className="font-bold">
-                {theme === 'prestige' ? 'Prestige' : theme === 'dark' ? 'Tối' : 'Sáng'}
+                {theme === 'prestige' ? 'Prestige' : theme === 'dark' ? t.settings.themeDark : t.settings.themeLight}
               </p>
-              <p className="text-sm text-muted">Chọn phong cách hiển thị</p>
+              <p className="text-sm text-muted">{t.settings.chooseStyle}</p>
             </div>
           </div>
           {theme !== 'prestige' && (
             <button
               onClick={toggle}
-              aria-label="Chuyển chế độ sáng tối"
+              aria-label={t.settings.toggleThemeAria}
               className="press relative h-8 w-14 rounded-full surface-sunken border border-[var(--border)]"
             >
               <span
@@ -237,10 +239,10 @@ export function AppearanceSettingsScreen() {
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <ThemeSwatch label="Sáng" active={theme === 'light'} onClick={() => setTheme('light')}>
+          <ThemeSwatch label={t.settings.themeLight} active={theme === 'light'} onClick={() => setTheme('light')}>
             <div className="h-12 rounded-lg bg-gradient-to-br from-[#eaf1ff] to-[#c7dbff] border border-black/5" />
           </ThemeSwatch>
-          <ThemeSwatch label="Tối" active={theme === 'dark'} onClick={() => setTheme('dark')}>
+          <ThemeSwatch label={t.settings.themeDark} active={theme === 'dark'} onClick={() => setTheme('dark')}>
             <div className="h-12 rounded-lg bg-gradient-to-br from-[#16235c] to-[#070b1a] border border-white/10" />
           </ThemeSwatch>
           <ThemeSwatch
@@ -269,7 +271,7 @@ export function AppearanceSettingsScreen() {
 
         {!isPremium && (
           <p className="text-xs text-faint flex items-center gap-1.5">
-            <Lock size={12} /> Giao diện Prestige (thẻ đen · viền vàng) dành riêng cho Premium.
+            <Lock size={12} /> {t.settings.prestigeLockedNote}
           </p>
         )}
       </Card>
@@ -366,41 +368,42 @@ export function DataSettingsScreen() {
   const { mode, groups, reload } = useStore()
   const confirm = useConfirm()
   const toast = useToast()
+  const t = useT()
 
   async function clearLocal() {
     if (mode !== 'local') return
     const ok = await confirm({
-      title: 'Xoá toàn bộ dữ liệu?',
-      description: 'Mọi nhóm trên máy này sẽ bị xoá. Hành động không thể hoàn tác.',
-      confirmLabel: 'Xoá hết',
+      title: t.settings.clearDataTitle,
+      description: t.settings.clearDataDesc,
+      confirmLabel: t.settings.clearDataConfirm,
       danger: true,
     })
     if (!ok) return
     localStorage.removeItem('splitz.groups.v1')
     await reload()
-    toast.success('Đã xoá dữ liệu trên máy')
+    toast.success(t.settings.localDataCleared)
   }
 
   return (
-    <SettingsShell title="Dữ liệu & lưu trữ">
+    <SettingsShell title={t.settings.dataTitle}>
       <Card className="space-y-3">
         <div className="flex items-center gap-3">
           <div className="grid place-items-center h-10 w-10 rounded-xl surface-sunken text-brand-600 dark:text-brand-300">
             {mode === 'cloud' ? <Cloud size={18} /> : <HardDrive size={18} />}
           </div>
           <div className="flex-1">
-            <p className="font-bold">{mode === 'cloud' ? 'Đồng bộ cloud' : 'Lưu trên thiết bị'}</p>
+            <p className="font-bold">{mode === 'cloud' ? t.settings.cloudMode : t.settings.localMode}</p>
             <p className="text-sm text-muted">
-              {mode === 'cloud' ? 'Dữ liệu đồng bộ qua Supabase' : `Đang lưu ${groups.length} nhóm trên trình duyệt`}
+              {mode === 'cloud' ? t.settings.cloudModeDesc : t.settings.localModeDesc({ n: groups.length })}
             </p>
           </div>
           <Badge tone={mode === 'cloud' ? 'pos' : 'muted'}>{mode === 'cloud' ? 'Cloud' : 'Local'}</Badge>
         </div>
         {mode === 'local' && (
           <>
-            <p className="text-xs text-faint">Đăng nhập (sắp có) để đồng bộ nhiều thiết bị.</p>
+            <p className="text-xs text-faint">{t.settings.signInComingSoon}</p>
             <Button variant="danger" size="sm" onClick={clearLocal} disabled={groups.length === 0}>
-              <Trash2 size={16} /> Xoá dữ liệu trên máy
+              <Trash2 size={16} /> {t.settings.clearLocalData}
             </Button>
           </>
         )}
@@ -408,11 +411,9 @@ export function DataSettingsScreen() {
 
       <Card className="space-y-2.5">
         <div className="flex items-center gap-2 font-bold">
-          <Shield size={18} className="text-brand-600 dark:text-brand-300" /> Minh bạch & an toàn
+          <Shield size={18} className="text-brand-600 dark:text-brand-300" /> {t.settings.transparentTitle}
         </div>
-        <p className="text-sm text-muted">
-          Splitz không giữ tiền, không làm trung gian thanh toán. Mã QR được tạo trực tiếp từ thông tin tài khoản người nhận. Luôn kiểm tra tên người nhận trong app ngân hàng trước khi chuyển.
-        </p>
+        <p className="text-sm text-muted">{t.settings.transparentDesc}</p>
       </Card>
     </SettingsShell>
   )

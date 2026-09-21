@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { useAuth } from './auth'
 import { getSupabase } from './supabase/client'
+import { t } from './i18n'
 
 export type Plan = 'free' | 'personal' | 'team'
 
@@ -115,12 +116,23 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
 export function useSubscription(): SubscriptionValue {
   const ctx = useContext(SubscriptionContext)
-  if (!ctx) throw new Error('useSubscription phải nằm trong SubscriptionProvider.')
+  if (!ctx)
+    throw new Error(
+      t()
+        .errors.hookOutsideProvider.replace('{fn}', 'useSubscription')
+        .replace('{provider}', 'SubscriptionProvider'),
+    )
   return ctx
 }
 
+// Getter (thay vì giá trị tĩnh) để gọi `PLAN_LABEL[plan]` ở đâu cũng đọc được
+// nhãn theo ngôn ngữ hiện hành, không đổi hình dạng Record<Plan, string>.
 export const PLAN_LABEL: Record<Plan, string> = {
   free: 'Free',
-  personal: 'Cá nhân',
-  team: 'Team',
+  get personal(): string {
+    return t().common.planPersonal
+  },
+  get team(): string {
+    return t().common.planTeam
+  },
 }

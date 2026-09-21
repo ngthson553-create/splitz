@@ -1,4 +1,5 @@
 import { getSupabase } from '../supabase/client'
+import { t } from '../i18n'
 import type { Attachment, Settlement } from '../types'
 
 const BUCKET = 'receipts'
@@ -78,7 +79,7 @@ export async function uploadAttachment(
 /** URL ký thời hạn ngắn để xem/tải (bucket private). */
 export async function signedUrl(storagePath: string, expiresSec = 3600): Promise<string> {
   const { data, error } = await getSupabase().storage.from(BUCKET).createSignedUrl(storagePath, expiresSec)
-  if (error || !data?.signedUrl) throw error ?? new Error('Không tạo được link xem.')
+  if (error || !data?.signedUrl) throw error ?? new Error(t().errors.signedUrlFailed)
   return data.signedUrl
 }
 
@@ -110,7 +111,7 @@ export async function uploadSettlementProof(
 }
 
 export async function signedSettlementProofUrl(settlement: Settlement, expiresSec = 3600): Promise<string> {
-  if (!settlement.proofStoragePath) throw new Error('Quyết toán này chưa có chứng từ.')
+  if (!settlement.proofStoragePath) throw new Error(t().errors.settlementNoProof)
   return signedUrl(settlement.proofStoragePath, expiresSec)
 }
 
@@ -140,7 +141,7 @@ export async function listGroupAttachments(
       continue
     }
     const list = out.get(a.expenseId) ?? []
-    list.push({ name: a.fileName ?? 'Chứng từ', isImage: (a.mimeType ?? '').startsWith('image/'), url })
+    list.push({ name: a.fileName ?? t().common.attachmentFallback, isImage: (a.mimeType ?? '').startsWith('image/'), url })
     out.set(a.expenseId, list)
   }
   return out

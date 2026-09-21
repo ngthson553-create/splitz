@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { t } from '../i18n'
 
 const url = import.meta.env.VITE_SUPABASE_URL?.trim()
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
@@ -10,7 +11,7 @@ let cached: SupabaseClient | null = null
 
 export function getSupabase(): SupabaseClient {
   if (!isSupabaseConfigured) {
-    throw new Error('Supabase chưa được cấu hình (thiếu VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).')
+    throw new Error(t().errors.supabaseNotConfigured)
   }
   if (!cached) {
     cached = createClient(url as string, anonKey as string, {

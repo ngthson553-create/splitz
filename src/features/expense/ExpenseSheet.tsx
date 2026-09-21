@@ -9,6 +9,7 @@ import { useToast } from '../../components/Toast'
 import { useNotifications } from '../../lib/notifications'
 import { newId } from '../../lib/id'
 import { formatVnd, parseMoneyInput } from '../../lib/format'
+import { useT } from '../../lib/i18n'
 import { CURRENCIES, currencySymbol, getRateToVnd } from '../../lib/exchange'
 import { sharesForExpense } from '../../lib/settlement/balances'
 import { trackEvent } from '../../lib/analytics'
@@ -25,13 +26,7 @@ import type {
   SplitMode,
 } from '../../lib/types'
 
-const MODES: { value: SplitMode; label: string }[] = [
-  { value: 'equal', label: 'Đều' },
-  { value: 'exact', label: 'Tay' },
-  { value: 'percent', label: '%' },
-  { value: 'shares', label: 'Phần' },
-  { value: 'itemized', label: 'Món' },
-]
+const MODE_VALUES: SplitMode[] = ['equal', 'exact', 'percent', 'shares', 'itemized']
 
 type DraftItem = { id: string; title: string; amountRaw: string; members: Set<string> }
 
@@ -50,7 +45,19 @@ export function ExpenseSheet({
   const { saveExpense } = useStore()
   const toast = useToast()
   const notifications = useNotifications()
+  const t = useT()
   const isEdit = Boolean(expense)
+
+  const MODES: { value: SplitMode; label: string }[] = MODE_VALUES.map((value) => ({
+    value,
+    label: {
+      equal: t.expense.modeEqual,
+      exact: t.expense.modeExact,
+      percent: t.expense.modePercent,
+      shares: t.expense.modeShares,
+      itemized: t.expense.modeItemized,
+    }[value],
+  }))
 
   const [title, setTitle] = useState('')
   const [amountRaw, setAmountRaw] = useState('')
@@ -81,7 +88,7 @@ export function ExpenseSheet({
     setFxRate(null)
     getRateToVnd(currency)
       .then((r) => active && setFxRate(r))
-      .catch(() => active && setError('Không lấy được tỷ giá. Thử lại hoặc chọn VND.'))
+      .catch(() => active && setError(t.expense.fxError))
       .finally(() => active && setFxLoading(false))
     return () => {
       active = false
@@ -229,7 +236,7 @@ export function ExpenseSheet({
 
   async function submit() {
     setError(null)
-    if (activePayerIds.length === 0) return setError('Chọn ít nhất một người trả.')
+    if (activePayerIds.length === 0) return setError(t.expense.needPayer)
 
     let finalAmount = amount
     let participants: ExpenseParticipant[]
@@ -239,11 +246,11 @@ export function ExpenseSheet({
       const valid = items
         .map((it) => ({ ...it, amount: parseMoneyInput(it.amountRaw) }))
         .filter((it) => it.amount > 0 && it.members.size > 0)
-      if (valid.length === 0) return setError('Thêm ít nhất một món hợp lệ (có giá và người chia).')
+      if (valid.length === 0) return setError(t.expense.needValidItem)
       finalAmount = valid.reduce((acc, it) => acc + it.amount, 0)
       expenseItems = valid.map((it) => ({
         id: it.id,
-        title: it.title.trim() || 'Món',
+        title: it.title.trim() || t.expense.defaultItemTitle,
         amount: it.amount,
         participants: [...it.members].map((memberId) => ({ memberId })),
       }))
@@ -252,8 +259,8 @@ export function ExpenseSheet({
       for (const it of valid) for (const m of it.members) union.add(m)
       participants = [...union].map((memberId) => ({ memberId }))
     } else {
-      if (amount <= 0) return setError('Nhập số tiền hợp lệ.')
-      if (participantIds.length === 0) return setError('Chọn ít nhất một người tham gia.')
+      if (amount <= 0) return setError(t.expense.needValidAmount)
+      if (participantIds.length === 0) return setError(t.expense.needParticipant)
       if (mode === 'equal') {
         participants = participantIds.map((memberId) => ({ memberId }))
       } else {
@@ -266,10 +273,12 @@ export function ExpenseSheet({
         }))
         const sum = participants.reduce((a, p) => a + (p.splitValue ?? 0), 0)
         if (mode === 'percent' && Math.abs(sum - 100) > 0.001)
-          return setError(`Tổng phần trăm phải bằng 100 (đang ${sum}).`)
+          return setError(t.expense.percentMustBe100({ sum: String(sum) }))
         if (mode === 'exact' && sum !== amount)
-          return setError(`Tổng nhập tay phải bằng ${formatVnd(amount)} (đang ${formatVnd(sum)}).`)
-        if (mode === 'shares' && sum <= 0) return setError('Tổng số phần phải lớn hơn 0.')
+          return setError(
+            t.expense.exactMustMatch({ expected: formatVnd(amount), actual: formatVnd(sum) }),
+          )
+        if (mode === 'shares' && sum <= 0) return setError(t.expense.sharesMustBePositive)
       }
     }
 
@@ -283,7 +292,9 @@ export function ExpenseSheet({
       }))
       const sum = payers.reduce((a, p) => a + p.amount, 0)
       if (sum !== finalAmount)
-        return setError(`Tổng tiền trả phải bằng ${formatVnd(finalAmount)} (đang ${formatVnd(sum)}).`)
+        return setError(
+          t.expense.payMustMatch({ expected: formatVnd(finalAmount), actual: formatVnd(sum) }),
+        )
     }
 
     // ── Đa tiền tệ (chỉ khi TẠO MỚI): quy đổi mọi số tiền sang VND (base) nhất quán ──
@@ -292,7 +303,7 @@ export function ExpenseSheet({
     let amountOriginal: number | undefined
     let exchangeRate: number | undefined
     if (!isEdit && currency !== 'VND') {
-      if (!fxRate) return setError('Đang tải tỷ giá, thử lại sau giây lát.')
+      if (!fxRate) return setError(t.expense.rateLoading)
       const rate = fxRate
       baseAmount = Math.round(finalAmount * rate)
       const scale = (parts: number[]): number[] => {
@@ -322,7 +333,8 @@ export function ExpenseSheet({
     const next: Expense = {
       id: expense?.id ?? newId('exp'),
       groupId: group.id,
-      title: title.trim() || (mode === 'itemized' ? 'Hoá đơn' : 'Khoản chi'),
+      title:
+        title.trim() || (mode === 'itemized' ? t.expense.defaultBillTitle : t.expense.defaultExpenseTitle),
       amount: baseAmount,
       note: note.trim() || undefined,
       paidAt: expense?.paidAt ?? new Date().toISOString(),
@@ -340,7 +352,7 @@ export function ExpenseSheet({
     try {
       sharesForExpense(next)
     } catch (e) {
-      return setError(e instanceof Error ? e.message : 'Khoản chi không hợp lệ.')
+      return setError(e instanceof Error ? e.message : t.expense.invalidExpense)
     }
 
     try {
@@ -357,28 +369,28 @@ export function ExpenseSheet({
         try {
           await uploadAttachment(group.id, saved.id, pendingReceipt)
         } catch {
-          toast.error('Đã lưu khoản chi nhưng chưa đính kèm được ảnh hoá đơn.')
+          toast.error(t.expense.receiptAttachFailed)
         }
         setPendingReceipt(null)
       }
     } catch (e) {
       if (isConflict(e)) {
-        return setError(
-          'Khoản chi vừa được người khác cập nhật. Đóng và mở lại để xem bản mới nhất.',
-        )
+        return setError(t.expense.conflictUpdated)
       }
-      return setError(errorMessage(e, 'Không lưu được khoản chi.'))
+      return setError(errorMessage(e, t.expense.saveFailed))
     }
 
-    const payerName = group.members.find((m) => m.id === activePayerIds[0])?.name ?? 'Ai đó'
+    const payerName = group.members.find((m) => m.id === activePayerIds[0])?.name ?? t.expense.someone
     notifications.add({
       kind: 'activity',
-      title: isEdit ? `Đã sửa “${next.title}”` : `${payerName} chi “${next.title}”`,
+      title: isEdit
+        ? t.expense.editedExpense({ title: next.title })
+        : t.expense.paidExpense({ name: payerName, title: next.title }),
       body: `${formatVnd(finalAmount)} · ${group.name}`,
       href: `/g/${group.id}`,
     })
 
-    toast.success(isEdit ? 'Đã cập nhật khoản chi' : 'Đã ghi khoản chi')
+    toast.success(isEdit ? t.expense.savedUpdated : t.expense.savedCreated)
     onClose()
   }
 
@@ -419,7 +431,7 @@ export function ExpenseSheet({
       })),
     )
     setMode('itemized')
-    if (!title.trim()) setTitle('Hoá đơn')
+    if (!title.trim()) setTitle(t.expense.defaultBillTitle)
     setPendingReceipt(file)
     setError(null)
   }
@@ -428,12 +440,12 @@ export function ExpenseSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={isEdit ? 'Sửa khoản chi' : 'Ghi khoản chi'}
+      title={isEdit ? t.expense.editTitle : t.expense.createTitle}
       footer={
         <div className="space-y-2">
           {error && <p className="text-sm text-neg font-medium text-center">{error}</p>}
           <Button fullWidth size="lg" onClick={submit}>
-            {isEdit ? 'Lưu thay đổi' : 'Lưu khoản chi'}
+            {isEdit ? t.expense.saveChanges : t.expense.saveExpense}
           </Button>
         </div>
       }
@@ -445,20 +457,20 @@ export function ExpenseSheet({
         )}
         {pendingReceipt && (
           <p className="flex items-center gap-1.5 text-xs text-pos -mt-2">
-            <Check size={13} /> Ảnh hoá đơn sẽ được đính kèm khi lưu.
+            <Check size={13} /> {t.expense.receiptAttachPending}
           </p>
         )}
 
         {/* Số tiền lớn — ẩn ở chế độ itemized (tự tính từ các món) */}
         {mode === 'itemized' ? (
           <div className="text-center py-2">
-            <p className="text-sm text-muted">Tổng hoá đơn</p>
+            <p className="text-sm text-muted">{t.expense.billTotal}</p>
             <p className="mt-1 text-3xl font-extrabold tnum text-app">{formatVnd(itemsTotal)}</p>
-            <p className="text-xs text-faint mt-0.5">Tự cộng từ các món bên dưới</p>
+            <p className="text-xs text-faint mt-0.5">{t.expense.billTotalHint}</p>
           </div>
         ) : (
           <div className="text-center py-2">
-            <p className="text-sm text-muted">Số tiền</p>
+            <p className="text-sm text-muted">{t.expense.amount}</p>
             <input
               autoFocus={!isEdit}
               inputMode="numeric"
@@ -471,12 +483,12 @@ export function ExpenseSheet({
               {currency === 'VND'
                 ? amount > 0
                   ? formatVnd(amount)
-                  : 'Gõ 250k, 1tr2, 50000…'
+                  : t.expense.amountHint
                 : fxLoading
-                  ? 'Đang lấy tỷ giá…'
+                  ? t.expense.fetchingRate
                   : fxRate && amount > 0
                     ? `${amount.toLocaleString('vi-VN')} ${currencySymbol(currency)} ≈ ${formatVnd(Math.round(amount * fxRate))}`
-                    : 'Nhập số tiền'}
+                    : t.expense.enterAmount}
             </p>
             {!isEdit && (
               <select
@@ -494,22 +506,23 @@ export function ExpenseSheet({
           </div>
         )}
 
-        <Field label="Nội dung">
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="VD: Ăn tối, Taxi, Vé tàu…" />
+        <Field label={t.expense.titleLabel}>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t.expense.titlePlaceholder} />
         </Field>
 
         {/* Ai trả (hỗ trợ nhiều người) */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[13px] font-semibold text-muted">
-              Ai trả?{activePayerIds.length > 1 ? ` (${activePayerIds.length})` : ''}
+              {t.expense.paidBy}
+              {activePayerIds.length > 1 ? ` (${activePayerIds.length})` : ''}
             </span>
             {activePayerIds.length > 1 && (
               <button
                 onClick={splitPayEqually}
                 className="text-xs font-semibold text-brand-600 dark:text-brand-300 press"
               >
-                Chia đều tiền trả
+                {t.expense.splitPayerPay}
               </button>
             )}
           </div>
@@ -551,7 +564,7 @@ export function ExpenseSheet({
                   paidSum === payTotal ? 'text-faint' : 'text-neg',
                 )}
               >
-                Tổng trả {formatVnd(paidSum)} / {formatVnd(payTotal)}
+                {t.expense.paidTotal({ paid: formatVnd(paidSum), total: formatVnd(payTotal) })}
               </p>
             </div>
           )}
@@ -559,7 +572,7 @@ export function ExpenseSheet({
 
         {/* Cách chia */}
         <div className="space-y-2">
-          <span className="text-[13px] font-semibold text-muted">Cách chia</span>
+          <span className="text-[13px] font-semibold text-muted">{t.expense.splitModeLabel}</span>
           <Segmented value={mode} onChange={setMode} options={MODES} />
         </div>
 
@@ -578,14 +591,16 @@ export function ExpenseSheet({
               />
             ))}
             <Button fullWidth variant="secondary" onClick={addItem}>
-              <Plus size={16} /> Thêm món
+              <Plus size={16} /> {t.expense.addItem}
             </Button>
           </div>
         ) : (
           /* Chia cho ai (các mode còn lại) */
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-muted">Chia cho ({participantIds.length})</span>
+              <span className="text-[13px] font-semibold text-muted">
+                {t.expense.splitAmong} ({participantIds.length})
+              </span>
               <button
                 onClick={() =>
                   setSelected((prev) =>
@@ -594,7 +609,7 @@ export function ExpenseSheet({
                 }
                 className="text-xs font-semibold text-brand-600 dark:text-brand-300 press"
               >
-                {selected.size === group.members.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                {selected.size === group.members.length ? t.expense.deselectAll : t.expense.selectAll}
               </button>
             </div>
             <div className="space-y-1.5">
@@ -628,7 +643,7 @@ export function ExpenseSheet({
                         inputMode="numeric"
                         value={values[m.id] ?? ''}
                         onChange={(e) => setValues((v) => ({ ...v, [m.id]: e.target.value }))}
-                        placeholder={mode === 'percent' ? '%' : mode === 'shares' ? 'phần' : '0'}
+                        placeholder={mode === 'percent' ? '%' : mode === 'shares' ? t.expense.sharesPlaceholder : '0'}
                         className="w-24 h-9 px-3 rounded-xl surface-sunken border border-[var(--border)] text-right text-sm font-semibold tnum outline-none focus:border-brand-400"
                       />
                     )}
@@ -639,8 +654,8 @@ export function ExpenseSheet({
           </div>
         )}
 
-        <Field label="Ghi chú (tuỳ chọn)">
-          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Thêm chi tiết nếu cần" />
+        <Field label={t.expense.noteLabel}>
+          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t.expense.notePlaceholder} />
         </Field>
       </div>
     </Sheet>
@@ -663,6 +678,7 @@ function ItemEditor({
   onRemove: () => void
 }) {
   const amount = parseMoneyInput(item.amountRaw)
+  const t = useT()
   return (
     <div className="rounded-2xl surface-sunken border border-[var(--border)] p-3 space-y-2.5">
       <div className="flex items-center gap-2">
@@ -670,7 +686,7 @@ function ItemEditor({
         <input
           value={item.title}
           onChange={(e) => onChange({ title: e.target.value })}
-          placeholder="Tên món"
+          placeholder={t.expense.itemNamePlaceholder}
           className="flex-1 min-w-0 h-9 px-3 rounded-xl bg-[var(--surface-solid)] border border-[var(--border)] text-sm font-semibold outline-none focus:border-brand-400"
         />
         <input
@@ -683,7 +699,7 @@ function ItemEditor({
         <button
           onClick={onRemove}
           className="press grid place-items-center h-9 w-9 rounded-xl text-faint hover:text-neg shrink-0"
-          aria-label="Xoá món"
+          aria-label={t.expense.deleteItem}
         >
           <Trash2 size={16} />
         </button>
@@ -710,7 +726,10 @@ function ItemEditor({
       </div>
       {amount > 0 && item.members.size > 0 && (
         <p className="text-xs text-faint tnum">
-          {formatVnd(Math.floor(amount / item.members.size))}/người · {item.members.size} người
+          {t.expense.perPerson({
+            amount: formatVnd(Math.floor(amount / item.members.size)),
+            count: item.members.size,
+          })}
         </p>
       )}
     </div>

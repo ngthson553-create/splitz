@@ -11,6 +11,7 @@ import type { Session } from '@supabase/supabase-js'
 import { getSupabase, isSupabaseConfigured } from './supabase/client'
 import { identifyUser, resetUser } from './analytics'
 import { isZaloConfigured, startZaloLogin } from './zalo'
+import { t } from './i18n'
 
 /** Hồ sơ người dùng (ánh xạ từ bảng public.profiles). */
 export type CloudProfile = {
@@ -104,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    if (!email) throw new Error('Tài khoản không có email — không thể định danh.')
+    if (!email) throw new Error(t().errors.accountMissingEmail)
     const insertRow = {
       id: userId,
       email,
@@ -177,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const completeOnboarding = useCallback(
     async (input: OnboardingInput) => {
       const sb = getSupabase()
-      if (!session) throw new Error('Chưa đăng nhập.')
+      if (!session) throw new Error(t().errors.notSignedIn)
       const patch = {
         display_name: input.displayName.trim(),
         avatar_url: input.avatarUrl ?? null,
@@ -202,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = useCallback(
     async (patch: Partial<OnboardingInput>) => {
       const sb = getSupabase()
-      if (!session) throw new Error('Chưa đăng nhập.')
+      if (!session) throw new Error(t().errors.notSignedIn)
       const row: Record<string, string | null> = {}
       if (patch.displayName !== undefined) row.display_name = patch.displayName.trim()
       if (patch.avatarUrl !== undefined) row.avatar_url = patch.avatarUrl ?? null
@@ -244,6 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthValue {
   const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth phải nằm trong AuthProvider.')
+  if (!ctx)
+    throw new Error(t().errors.hookOutsideProvider.replace('{fn}', 'useAuth').replace('{provider}', 'AuthProvider'))
   return ctx
 }

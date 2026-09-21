@@ -10,6 +10,7 @@ import {
 import { createPortal } from 'react-dom'
 import { Button } from './ui'
 import { overlayMotion, spring } from '../lib/motion'
+import { t, useT } from '../lib/i18n'
 
 type ConfirmOptions = {
   title: string
@@ -25,13 +26,17 @@ const ConfirmContext = createContext<ConfirmContextValue | null>(null)
 
 export function useConfirm(): ConfirmContextValue {
   const ctx = useContext(ConfirmContext)
-  if (!ctx) throw new Error('useConfirm phải nằm trong ConfirmProvider.')
+  if (!ctx)
+    throw new Error(
+      t().errors.hookOutsideProvider.replace('{fn}', 'useConfirm').replace('{provider}', 'ConfirmProvider'),
+    )
   return ctx
 }
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ConfirmOptions | null>(null)
   const resolver = useRef<((value: boolean) => void) | null>(null)
+  const t = useT()
 
   const confirm = useCallback<ConfirmContextValue>((options) => {
     setState(options)
@@ -75,14 +80,14 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               )}
               <div className="mt-5 flex gap-2">
                 <Button variant="secondary" fullWidth onClick={() => close(false)}>
-                  {state.cancelLabel ?? 'Huỷ'}
+                  {state.cancelLabel ?? t.common.cancel}
                 </Button>
                 <Button
                   variant={state.danger ? 'danger' : 'primary'}
                   fullWidth
                   onClick={() => close(true)}
                 >
-                  {state.confirmLabel ?? 'Xác nhận'}
+                  {state.confirmLabel ?? t.common.confirm}
                 </Button>
               </div>
             </motion.div>

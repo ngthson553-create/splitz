@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, X } from 'lucide-react'
 import { Sheet } from '../../components/Sheet'
 import { Avatar, Button, Field, Input } from '../../components/ui'
+import { useT } from '../../lib/i18n'
 import { useStore } from '../../lib/store'
 import { useToast } from '../../components/Toast'
 import { colorForIndex } from '../../lib/format'
 import { trackEvent } from '../../lib/analytics'
 
 export function CreateGroupSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useT()
   const { createGroup, mode } = useStore()
   const toast = useToast()
   const navigate = useNavigate()
@@ -45,7 +47,7 @@ export function CreateGroupSheet({ open, onClose }: { open: boolean; onClose: ()
       navigate(`/g/${group.id}`)
     } catch (e) {
       // Giới hạn gói (trigger) hoặc lỗi khác → báo thân thiện.
-      toast.error(e instanceof Error ? e.message : 'Không tạo được nhóm.')
+      toast.error(e instanceof Error ? e.message : t.home.createFailed)
     } finally {
       setBusy(false)
     }
@@ -61,18 +63,18 @@ export function CreateGroupSheet({ open, onClose }: { open: boolean; onClose: ()
         onClose()
         reset()
       }}
-      title="Tạo nhóm mới"
+      title={t.home.newGroupTitle}
       footer={
         <Button fullWidth size="lg" disabled={!canSubmit || busy} onClick={submit}>
-          {busy ? 'Đang tạo…' : 'Tạo nhóm'}
+          {busy ? t.home.creating : t.home.createGroup}
         </Button>
       }
     >
       <div className="space-y-5 py-1">
-        <Field label="Tên nhóm">
+        <Field label={t.home.groupName}>
           <Input
             autoFocus
-            placeholder="VD: Đà Lạt tháng 6, Ăn trưa team…"
+            placeholder={t.home.groupNameExample}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -80,14 +82,14 @@ export function CreateGroupSheet({ open, onClose }: { open: boolean; onClose: ()
 
         <div className="space-y-2">
           <span className="text-sm font-semibold text-muted">
-            {mode === 'cloud' ? 'Thêm người khác (bạn đã là thành viên)' : 'Thành viên'}
+            {mode === 'cloud' ? t.home.addOthersCloud : t.home.members}
           </span>
           <div className="space-y-2">
             {members.map((m, i) => (
               <div key={i} className="flex items-center gap-2">
                 <Avatar name={m || '?'} color={colorForIndex(i)} size="sm" />
                 <Input
-                  placeholder={`Tên thành viên ${i + 1}`}
+                  placeholder={t.home.memberNamePlaceholder({ n: i + 1 })}
                   value={m}
                   onChange={(e) => updateMember(i, e.target.value)}
                   onKeyDown={(e) => {
@@ -98,7 +100,7 @@ export function CreateGroupSheet({ open, onClose }: { open: boolean; onClose: ()
                   <button
                     onClick={() => removeMemberRow(i)}
                     className="press grid place-items-center h-9 w-9 rounded-xl text-faint hover:text-neg"
-                    aria-label="Xóa"
+                    aria-label={t.home.removeMember}
                   >
                     <X size={18} />
                   </button>
@@ -110,7 +112,7 @@ export function CreateGroupSheet({ open, onClose }: { open: boolean; onClose: ()
             onClick={addMemberRow}
             className="press inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 dark:text-brand-300 mt-1"
           >
-            <Plus size={16} /> Thêm thành viên
+            <Plus size={16} /> {t.home.addMember}
           </button>
         </div>
       </div>

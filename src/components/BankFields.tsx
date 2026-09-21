@@ -3,6 +3,7 @@ import { QrCode, Loader2 } from 'lucide-react'
 import jsQR from 'jsqr'
 import { Field, Input } from './ui'
 import { BANK_GROUPS, parseVietQR } from '../lib/settlement/vietqr'
+import { t, useT } from '../lib/i18n'
 
 export type BankValue = {
   bankCode: string
@@ -25,6 +26,7 @@ export function BankFields({
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [scanning, setScanning] = useState(false)
+  const t = useT()
 
   async function onPickQr(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -34,12 +36,12 @@ export function BankFields({
     try {
       const decoded = await decodeQrFromFile(file)
       if (!decoded) {
-        onScanError?.('Không đọc được mã QR trong ảnh. Thử ảnh rõ hơn.')
+        onScanError?.(t.errors.qrNotFound)
         return
       }
       const parsed = parseVietQR(decoded)
       if (!parsed) {
-        onScanError?.('Đây không phải mã QR ngân hàng VietQR hợp lệ.')
+        onScanError?.(t.errors.qrNotBankQr)
         return
       }
       onChange({
@@ -48,10 +50,10 @@ export function BankFields({
         accountNumber: parsed.accountNumber,
       })
       if (!parsed.bankCode) {
-        onScanError?.('Đã điền số tài khoản. Không nhận diện được ngân hàng — chọn thủ công.')
+        onScanError?.(t.errors.qrBankUnknown)
       }
     } catch {
-      onScanError?.('Lỗi khi quét QR. Thử lại.')
+      onScanError?.(t.errors.qrScanFailed)
     } finally {
       setScanning(false)
     }
@@ -61,13 +63,13 @@ export function BankFields({
     <div className="space-y-3">
       <div className="flex items-end gap-2">
         <div className="flex-1">
-          <Field label="Ngân hàng">
+          <Field label={t.common.bank}>
             <select
               value={value.bankCode}
               onChange={(e) => onChange({ ...value, bankCode: e.target.value })}
               className="w-full h-11 px-3.5 rounded-xl text-app surface-sunken border border-[var(--border)] focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30 outline-none transition"
             >
-              <option value="">Chọn ngân hàng</option>
+              <option value="">{t.common.selectBank}</option>
               {BANK_GROUPS.map((grp) => (
                 <optgroup key={grp.label} label={grp.label}>
                   {grp.banks.map((b) => (
@@ -87,7 +89,7 @@ export function BankFields({
           className="press h-11 px-3.5 rounded-xl inline-flex items-center gap-2 font-semibold bg-[var(--surface-solid)] border border-[var(--border-strong)] text-app shadow-soft hover:border-brand-400/40 disabled:opacity-50"
         >
           {scanning ? <Loader2 size={18} className="animate-spin" /> : <QrCode size={18} />}
-          <span className="text-sm">Quét QR</span>
+          <span className="text-sm">{t.common.scanQr}</span>
         </button>
         <input
           ref={fileRef}
@@ -98,20 +100,20 @@ export function BankFields({
         />
       </div>
 
-      <Field label="Số tài khoản">
+      <Field label={t.common.accountNumber}>
         <Input
           inputMode="numeric"
           value={value.accountNumber}
           onChange={(e) => onChange({ ...value, accountNumber: e.target.value.replace(/\s/g, '') })}
-          placeholder="VD: 0123456789"
+          placeholder={t.common.accountNumberPlaceholder}
         />
       </Field>
 
-      <Field label="Tên chủ tài khoản" hint="Viết IN HOA không dấu để khớp mã QR chuyển khoản.">
+      <Field label={t.common.accountName} hint={t.common.accountNameHint}>
         <Input
           value={value.accountName}
           onChange={(e) => onChange({ ...value, accountName: e.target.value })}
-          placeholder="VD: NGUYEN VAN A"
+          placeholder={t.common.accountNamePlaceholder}
         />
       </Field>
     </div>
@@ -140,7 +142,7 @@ function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result as string)
-    reader.onerror = () => reject(new Error('Không đọc được tệp ảnh.'))
+    reader.onerror = () => reject(new Error(t().errors.fileReadFailed))
     reader.readAsDataURL(file)
   })
 }
@@ -166,7 +168,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('Không tải được ảnh.'))
+    img.onerror = () => reject(new Error(t().errors.imageLoadFailed))
     img.src = src
   })
 }

@@ -4,6 +4,8 @@ import type { Group } from './types'
 import { formatVnd, formatDate } from './format'
 import { settleState } from './settlement'
 import { listGroupAttachments } from './data/attachments'
+import { t } from './i18n'
+import { getLang } from './i18n/locale'
 
 export type ReportAttachment = { name: string; isImage: boolean; url: string }
 export type ReportAttachmentMap = Map<string, ReportAttachment[]>
@@ -23,7 +25,7 @@ export async function exportGroupReport(group: Group): Promise<void> {
   const html = buildGroupReportHtml(group, attachments)
 
   const w = window.open('', '_blank')
-  if (!w) throw new Error('Trình duyệt chặn cửa sổ. Hãy cho phép pop-up để xuất báo cáo.')
+  if (!w) throw new Error(t().errors.popupBlocked)
   w.document.write(html)
   w.document.close()
   // Chờ ảnh tải xong rồi mở hộp thoại in (lưu PDF).
@@ -50,6 +52,7 @@ export function buildGroupReportHtml(
   const memberName = (id: string) => group.members.find((m) => m.id === id)?.name ?? '—'
   const state = settleState(group)
   const total = group.expenses.reduce((a, e) => a + e.amount, 0)
+  const C = t().common
 
   const expensesRows = [...group.expenses]
     .sort((a, b) => b.paidAt.localeCompare(a.paidAt))
@@ -57,11 +60,11 @@ export function buildGroupReportHtml(
       const payer = e.payers.map((p) => memberName(p.memberId)).join(', ')
       const atts = attachments.get(e.id) ?? []
       const attHtml = atts.length
-        ? `<div class="att-title">Chứng từ</div><div class="atts">${atts
+        ? `<div class="att-title">${esc(C.reportAttachments)}</div><div class="atts">${atts
             .map((a) =>
               a.isImage
                 ? `<img src="${esc(a.url)}" alt="${esc(a.name)}"/>`
-                : `<div class="pdf">📄 ${esc(a.name)} — <a href="${esc(a.url)}">mở</a></div>`,
+                : `<div class="pdf">📄 ${esc(a.name)} — <a href="${esc(a.url)}">${esc(C.reportOpen)}</a></div>`,
             )
             .join('')}</div>`
         : ''
@@ -73,7 +76,7 @@ export function buildGroupReportHtml(
   const balanceRows = state.confirmedBalances
     .map((b) => {
       const cls = b.balance > 0 ? 'pos' : b.balance < 0 ? 'neg' : ''
-      const label = b.balance > 0 ? 'được nhận' : b.balance < 0 ? 'còn nợ' : 'đã xong'
+      const label = b.balance > 0 ? C.reportReceivable : b.balance < 0 ? C.reportOwes : C.reportSettledUp
       return `<tr><td>${esc(b.name)}</td><td class="r ${cls}">${esc(formatVnd(Math.abs(b.balance)))} (${label})</td></tr>`
     })
     .join('')
@@ -86,8 +89,8 @@ export function buildGroupReportHtml(
     )
     .join('')
 
-  const html = `<!doctype html><html lang="vi"><head><meta charset="utf-8"/>
-  <title>Báo cáo ${esc(group.name)}</title>
+  const html = `<!doctype html><html lang="${getLang()}"><head><meta charset="utf-8"/>
+  <title>${esc(C.reportTitle)} ${esc(group.name)}</title>
   <style>
     *{font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;box-sizing:border-box}
     body{margin:24px;color:#0f172a}
@@ -106,22 +109,22 @@ export function buildGroupReportHtml(
     @media print{a{color:#1d4ed8;text-decoration:none}}
   </style></head><body>
     <h1>${esc(group.emoji ?? '')} ${esc(group.name)}</h1>
-    <p class="muted">Báo cáo chia tiền — xuất ngày ${esc(formatDate(exportedAt))} · Splitz</p>
-    <p class="total">Tổng chi: ${esc(formatVnd(total))}</p>
+    <p class="muted">${esc(C.reportSubtitle.replace('{date}', formatDate(exportedAt)))}</p>
+    <p class="total">${esc(C.reportTotalSpent)}: ${esc(formatVnd(total))}</p>
 
-    <h2>Số dư từng người (sau quyết toán)</h2>
-    <table>${balanceRows || '<tr><td class="muted">Chưa có dữ liệu</td></tr>'}</table>
+    <h2>${esc(C.reportBalancesTitle)}</h2>
+    <table>${balanceRows || `<tr><td class="muted">${esc(C.reportNoData)}</td></tr>`}</table>
 
     ${
       state.transfers.length
-        ? `<h2>Cần chuyển</h2><table>${transferRows}</table>`
-        : '<h2>Trạng thái</h2><p class="muted">Đã sòng phẳng.</p>'
+        ? `<h2>${esc(C.reportTransfersTitle)}</h2><table>${transferRows}</table>`
+        : `<h2>${esc(C.reportStatusTitle)}</h2><p class="muted">${esc(C.reportSettled)}</p>`
     }
 
-    <h2>Khoản chi (${group.expenses.length})</h2>
-    <table>${expensesRows || '<tr><td class="muted">Chưa có khoản chi</td></tr>'}</table>
+    <h2>${esc(C.reportExpensesTitle)} (${group.expenses.length})</h2>
+    <table>${expensesRows || `<tr><td class="muted">${esc(C.reportNoExpenses)}</td></tr>`}</table>
 
-    <p class="muted" style="margin-top:24px">Splitz không giữ tiền, không xử lý thanh toán. Báo cáo này do người dùng tự xuất.</p>
+    <p class="muted" style="margin-top:24px">${esc(C.reportFooter)}</p>
   </body></html>`
   return html
 }

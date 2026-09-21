@@ -1,5 +1,6 @@
 import { getSupabase } from '../supabase/client'
 import { compressImage, dataUrlToBase64 } from '../image'
+import { t } from '../i18n'
 
 async function fnError(error: unknown): Promise<never> {
   const ctx = (error as { context?: Response })?.context
@@ -11,7 +12,7 @@ async function fnError(error: unknown): Promise<never> {
       if (e instanceof Error && e.message) throw e
     }
   }
-  throw error instanceof Error ? error : new Error('Không quét được hoá đơn.')
+  throw error instanceof Error ? error : new Error(t().errors.ocrFailed)
 }
 
 export type OcrItem = { title: string; amount: number }

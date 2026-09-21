@@ -1,8 +1,27 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { captureError } from '../lib/analytics'
+import { t } from '../lib/i18n'
 
 type Props = { children: ReactNode }
 type State = { error: Error | null }
+
+/**
+ * ErrorBoundary nằm NGOÀI I18nProvider (main.tsx) nên KHÔNG được dùng useT():
+ * nếu provider/cây React lỗi thì hook sẽ ném tiếp và làm trắng màn hình.
+ * Dùng hàm t() thuần trong try/catch, hỏng thì fallback tiếng Anh cứng.
+ */
+function crashCopy(): { title: string; message: string; home: string } {
+  try {
+    const C = t().common
+    return { title: C.somethingWentWrong, message: C.crashMessageDevice, home: C.backHome }
+  } catch {
+    return {
+      title: 'Something went wrong',
+      message: 'Splitz ran into an unexpected problem. Your data stays safe on this device.',
+      home: 'Back to home',
+    }
+  }
+}
 
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null }
@@ -23,6 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.error) {
+      const copy = crashCopy()
       return (
         <div className="min-h-dvh grid place-items-center px-6 text-center">
           <div className="space-y-4 max-w-xs">
@@ -30,10 +50,8 @@ export class ErrorBoundary extends Component<Props, State> {
               ⚠️
             </div>
             <div>
-              <h1 className="font-bold text-app">Có lỗi xảy ra</h1>
-              <p className="mt-1.5 text-sm text-muted">
-                Splitz gặp sự cố không mong muốn. Dữ liệu của bạn vẫn an toàn trên máy.
-              </p>
+              <h1 className="font-bold text-app">{copy.title}</h1>
+              <p className="mt-1.5 text-sm text-muted">{copy.message}</p>
             </div>
             <button
               onClick={() => {
@@ -42,7 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
               }}
               className="press gradient-brand text-white font-semibold rounded-2xl h-11 px-5 shadow-glow"
             >
-              Về trang chủ
+              {copy.home}
             </button>
           </div>
         </div>

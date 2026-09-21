@@ -1,4 +1,5 @@
 import type { Expense, Group, MemberBalance } from '../types'
+import { t } from '../i18n'
 import { normalizeMoney } from './money'
 
 /**
@@ -11,7 +12,7 @@ export function sharesForExpense(expense: Expense): Map<string, number> {
   const shares = new Map<string, number>()
   const amount = normalizeMoney(expense.amount)
   const participants = expense.participants
-  if (!participants.length) throw new Error('Khoản chi cần ít nhất một người tham gia.')
+  if (!participants.length) throw new Error(t().group.errors.expenseNeedsParticipants)
 
   if (expense.splitMode === 'itemized') {
     const items = expense.items ?? []
@@ -54,7 +55,7 @@ export function sharesForExpense(expense: Expense): Map<string, number> {
 
   if (expense.splitMode === 'shares') {
     const totalShares = participants.reduce((acc, p) => acc + (p.splitValue ?? 1), 0)
-    if (totalShares <= 0) throw new Error('Tổng số phần chia phải lớn hơn 0.')
+    if (totalShares <= 0) throw new Error(t().group.errors.totalSharesPositive)
     let allocated = 0
     participants.forEach((participant, index) => {
       const isLast = index === participants.length - 1
@@ -79,7 +80,7 @@ export function sharesForExpense(expense: Expense): Map<string, number> {
   }
 
   const total = [...shares.values()].reduce((acc, value) => acc + value, 0)
-  if (total !== amount) throw new Error('Tổng phần chia không khớp số tiền khoản chi.')
+  if (total !== amount) throw new Error(t().group.errors.sharesMismatch)
   return shares
 }
 

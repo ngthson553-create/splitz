@@ -1,4 +1,5 @@
 import { getSupabase } from '../supabase/client'
+import { t } from '../i18n'
 
 async function fnError(error: unknown): Promise<never> {
   const ctx = (error as { context?: Response })?.context
@@ -10,7 +11,7 @@ async function fnError(error: unknown): Promise<never> {
       if (e instanceof Error && e.message) throw e
     }
   }
-  throw error instanceof Error ? error : new Error('Không gửi được lời nhắc.')
+  throw error instanceof Error ? error : new Error(t().errors.remindSendFailed)
 }
 
 export type RemindStatus = 'sent' | 'no_device' | 'not_real_user' | 'cooldown' | 'invalid'

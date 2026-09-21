@@ -7,6 +7,7 @@
 //   initZaloLogin({id,name,avatar})            → Edge: cần email? hay đã có → gửi OTP
 //   sendOtp/verifyOtp                          → Edge xác thực email → session
 import { getSupabase } from './supabase/client'
+import { t } from './i18n'
 import type { Session } from '@supabase/supabase-js'
 
 const ZALO_APP_ID = import.meta.env.VITE_ZALO_APP_ID?.trim()
@@ -34,7 +35,7 @@ export function zaloRedirectUri(): string {
 
 /** Bước 1: chuyển hướng sang trang cho phép của Zalo (PKCE). */
 export async function startZaloLogin(): Promise<void> {
-  if (!ZALO_APP_ID) throw new Error('Chưa cấu hình VITE_ZALO_APP_ID.')
+  if (!ZALO_APP_ID) throw new Error(t().errors.zaloNotConfigured)
   const verifier = randomString(64)
   const challenge = base64url(await sha256(verifier))
   const state = randomString(16)
@@ -74,8 +75,8 @@ export async function exchangeZaloCode(code: string, state: string): Promise<str
   const savedState = sessionStorage.getItem(STATE_KEY)
   sessionStorage.removeItem(VERIFIER_KEY)
   sessionStorage.removeItem(STATE_KEY)
-  if (!verifier) throw new Error('Phiên đăng nhập Zalo không hợp lệ. Thử lại.')
-  if (savedState && state && savedState !== state) throw new Error('State không khớp (bảo mật).')
+  if (!verifier) throw new Error(t().errors.zaloSessionInvalid)
+  if (savedState && state && savedState !== state) throw new Error(t().errors.zaloStateMismatch)
 
   const { accessToken } = await callZaloAuth<{ accessToken: string }>('exchange', {
     code,
@@ -93,7 +94,7 @@ export async function fetchZaloProfile(accessToken: string): Promise<ZaloProfile
   const data = await res.json()
   if (!data.id) {
     throw new Error(
-      data?.message ? `Zalo: ${data.message}` : 'Không lấy được thông tin Zalo. Thử lại.',
+      data?.message ? `Zalo: ${data.message}` : t().errors.zaloProfileFailed,
     )
   }
   return {
@@ -163,7 +164,7 @@ export function hasPendingGoogleLink(): boolean {
 export async function completeGoogleLink(): Promise<void> {
   const zaloToken = sessionStorage.getItem(PENDING_LINK_KEY)
   sessionStorage.removeItem(PENDING_LINK_KEY)
-  if (!zaloToken) throw new Error('Không tìm thấy phiên liên kết Zalo. Thử lại.')
+  if (!zaloToken) throw new Error(t().errors.zaloLinkSessionMissing)
   await callZaloAuth<{ status: 'ok' }>('link-google', { zaloToken })
 }
 

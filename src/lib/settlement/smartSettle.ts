@@ -1,4 +1,5 @@
 import type { MemberBalance, SettlementTransfer } from '../types'
+import { t } from '../i18n'
 import { assertBalancesSumToZero, normalizeMoney } from './money'
 
 type WorkingBalance = MemberBalance & { balance: number }
@@ -51,9 +52,9 @@ export function validateTransfers(balances: MemberBalance[], transfers: Settleme
   const received = new Map<string, number>()
 
   for (const transfer of transfers) {
-    if (transfer.amount <= 0) throw new Error('Số tiền chuyển phải dương.')
+    if (transfer.amount <= 0) throw new Error(t().group.errors.transferAmountPositive)
     if (transfer.fromMemberId === transfer.toMemberId) {
-      throw new Error('Không thể chuyển cho chính mình.')
+      throw new Error(t().group.errors.cannotSelfTransfer)
     }
     paid.set(transfer.fromMemberId, (paid.get(transfer.fromMemberId) ?? 0) + normalizeMoney(transfer.amount))
     received.set(transfer.toMemberId, (received.get(transfer.toMemberId) ?? 0) + normalizeMoney(transfer.amount))
@@ -62,13 +63,13 @@ export function validateTransfers(balances: MemberBalance[], transfers: Settleme
   for (const balance of balances) {
     const value = normalizeMoney(balance.balance)
     if (value < 0 && (paid.get(balance.memberId) ?? 0) !== Math.abs(value)) {
-      throw new Error(`Tổng chuyển của ${balance.memberId} không hợp lệ.`)
+      throw new Error(t().group.errors.totalTransferredInvalid({ memberId: balance.memberId }))
     }
     if (value > 0 && (received.get(balance.memberId) ?? 0) !== value) {
-      throw new Error(`Tổng nhận của ${balance.memberId} không hợp lệ.`)
+      throw new Error(t().group.errors.totalReceivedInvalid({ memberId: balance.memberId }))
     }
     if (value === 0 && ((paid.get(balance.memberId) ?? 0) > 0 || (received.get(balance.memberId) ?? 0) > 0)) {
-      throw new Error(`Thành viên cân bằng ${balance.memberId} không nên có giao dịch.`)
+      throw new Error(t().group.errors.balancedMemberNoTx({ memberId: balance.memberId }))
     }
   }
 }

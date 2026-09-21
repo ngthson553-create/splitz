@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Loader2, Mail, ShieldCheck } from 'lucide-react'
 import { Button, Field, Input } from '../../components/ui'
+import { useT } from '../../lib/i18n'
 import { useToast } from '../../components/Toast'
 import {
   applySession,
@@ -21,6 +22,7 @@ export function ZaloCallbackScreen() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const toast = useToast()
+  const t = useT()
   const ran = useRef(false)
 
   const [phase, setPhase] = useState<Phase>('working')
@@ -42,7 +44,7 @@ export function ZaloCallbackScreen() {
           navigate('/', { replace: true })
         } catch (e) {
           setPhase('error')
-          setErrorMsg(e instanceof Error ? e.message : 'Liên kết Google thất bại.')
+          setErrorMsg(e instanceof Error ? e.message : t.auth.googleLinkFailed)
         }
       })()
       return
@@ -54,7 +56,7 @@ export function ZaloCallbackScreen() {
 
     if (oauthError || !code) {
       setPhase('error')
-      setErrorMsg('Bạn đã huỷ hoặc Zalo không trả mã đăng nhập.')
+      setErrorMsg(t.auth.cancelledOrNoCode)
       return
     }
 
@@ -71,14 +73,14 @@ export function ZaloCallbackScreen() {
           setMaskedEmail(res.email)
           setPhase('otp')
           if (res.sendError) {
-            toast.error('Chưa gửi được mã. Bấm “Gửi lại mã” hoặc đổi email.')
+            toast.error(t.auth.otpSendHint)
           }
         } else {
           setPhase('need_email')
         }
       } catch (e) {
         setPhase('error')
-        setErrorMsg(e instanceof Error ? e.message : 'Đăng nhập Zalo thất bại.')
+        setErrorMsg(e instanceof Error ? e.message : t.auth.zaloSignInFailed)
       }
     })()
   }, [params])
@@ -88,36 +90,36 @@ export function ZaloCallbackScreen() {
     try {
       await linkZaloViaGoogle(zaloToken)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Không mở được đăng nhập Google.')
+      toast.error(e instanceof Error ? e.message : t.auth.googleOpenFailed)
       setBusy(false)
     }
   }
 
   async function onSendOtp() {
-    if (!email.trim()) return toast.error('Nhập email của bạn.')
+    if (!email.trim()) return toast.error(t.auth.emailRequired)
     setBusy(true)
     try {
       const r = await sendZaloEmailOtp(zaloToken, email.trim())
       setZaloToken(r.zaloToken)
       setMaskedEmail(r.email)
       setPhase('otp')
-      toast.success('Đã gửi mã xác thực tới email.')
+      toast.success(t.auth.otpSent)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Không gửi được mã.')
+      toast.error(e instanceof Error ? e.message : t.auth.codeSendFailed)
     } finally {
       setBusy(false)
     }
   }
 
   async function onVerify() {
-    if (!otp.trim()) return toast.error('Nhập mã OTP.')
+    if (!otp.trim()) return toast.error(t.auth.otpRequired)
     setBusy(true)
     try {
       const session = await verifyZaloOtp(zaloToken, otp.trim())
       await applySession(session)
       navigate('/', { replace: true })
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Xác thực thất bại.')
+      toast.error(e instanceof Error ? e.message : t.auth.verifyFailed)
     } finally {
       setBusy(false)
     }
@@ -130,7 +132,7 @@ export function ZaloCallbackScreen() {
         {phase === 'working' && (
           <div className="flex flex-col items-center gap-3 text-center">
             <Loader2 size={28} className="animate-spin text-brand-500" />
-            <p className="text-sm text-muted">Đang xác thực với Zalo…</p>
+            <p className="text-sm text-muted">{t.auth.verifyingWithZalo}</p>
           </div>
         )}
 
@@ -138,18 +140,18 @@ export function ZaloCallbackScreen() {
           <div className="w-full space-y-5">
             <Head
               icon={<Mail size={28} />}
-              title="Xác thực email"
-              desc="Để định danh tài khoản, dùng Google (nhanh nhất) hoặc nhập email để nhận mã xác thực."
+              title={t.auth.emailVerifyTitle}
+              desc={t.auth.emailVerifyDesc}
             />
             <Button fullWidth size="lg" variant="secondary" onClick={onGoogleLink} disabled={busy}>
-              <GoogleMark /> Tiếp tục với Google
+              <GoogleMark /> {t.auth.continueWithGoogle}
             </Button>
             <div className="flex items-center gap-3 py-1">
               <span className="h-px flex-1 bg-[var(--border)]" />
-              <span className="text-xs text-faint">hoặc dùng email</span>
+              <span className="text-xs text-faint">{t.auth.orUseEmail}</span>
               <span className="h-px flex-1 bg-[var(--border)]" />
             </div>
-            <Field label="Email">
+            <Field label={t.auth.emailLabel}>
               <Input
                 type="email"
                 value={email}
@@ -160,7 +162,7 @@ export function ZaloCallbackScreen() {
             </Field>
             <Button fullWidth size="lg" onClick={onSendOtp} disabled={busy}>
               {busy ? <Loader2 size={18} className="animate-spin" /> : null}
-              Gửi mã xác thực
+              {t.auth.sendCode}
             </Button>
           </div>
         )}
@@ -169,37 +171,37 @@ export function ZaloCallbackScreen() {
           <div className="w-full space-y-5">
             <Head
               icon={<ShieldCheck size={28} />}
-              title="Nhập mã OTP"
-              desc={`Mã xác thực đã gửi tới ${maskedEmail || 'email của bạn'}. Nhập mã để hoàn tất.`}
+              title={t.auth.otpTitle}
+              desc={t.auth.otpDesc({ email: maskedEmail || t.auth.yourEmail })}
             />
-            <Field label="Mã OTP">
+            <Field label={t.auth.otpLabel}>
               <Input
                 inputMode="numeric"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\s/g, ''))}
-                placeholder="VD: 123456"
+                placeholder={t.auth.otpPlaceholder}
                 autoFocus
               />
             </Field>
             <Button fullWidth size="lg" onClick={onVerify} disabled={busy}>
               {busy ? <Loader2 size={18} className="animate-spin" /> : null}
-              Xác nhận & đăng nhập
+              {t.auth.verifyAndSignIn}
             </Button>
             <button
               type="button"
               onClick={() => setPhase('need_email')}
               className="press w-full text-sm text-muted hover:text-app"
             >
-              Đổi email khác
+              {t.auth.changeEmail}
             </button>
           </div>
         )}
 
         {phase === 'error' && (
           <div className="w-full space-y-5 text-center">
-            <Head icon={<ShieldCheck size={28} />} title="Đăng nhập thất bại" desc={errorMsg} center />
+            <Head icon={<ShieldCheck size={28} />} title={t.auth.signInFailedTitle} desc={errorMsg} center />
             <Button fullWidth size="lg" onClick={() => navigate('/', { replace: true })}>
-              Về trang đăng nhập
+              {t.auth.backToLogin}
             </Button>
           </div>
         )}

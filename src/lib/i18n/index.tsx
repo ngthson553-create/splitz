@@ -26,8 +26,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
 function useI18n(): I18nContextValue {
   const ctx = useContext(I18nContext)
-  if (!ctx) throw new Error('useI18n phải nằm trong I18nProvider.')
-  return ctx
+  if (ctx) return ctx
+  // Render ngoài provider (test render component trần, portal lạc cây):
+  // fallback về từ điển hiện hành thay vì đổ lỗi — đổi ngôn ngữ sẽ không
+  // re-render ở cây lạc này, nhưng app thật luôn có provider ở gốc.
+  const lang = getLang()
+  return { lang, setLang: setActiveLang, t: dictionaries[lang] }
 }
 
 /** Từ điển của ngôn ngữ đang bật: `const t = useT()` → `t.common.save`. */

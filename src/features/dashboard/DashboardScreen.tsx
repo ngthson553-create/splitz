@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { PageTransition } from '../../components/PageTransition'
 import { Avatar, Button, EmptyState } from '../../components/ui'
+import { useT } from '../../lib/i18n'
 import { useStore } from '../../lib/store'
 import { useProfile } from '../../lib/profile'
 import { useAuth } from '../../lib/auth'
@@ -28,6 +29,7 @@ import { fadeUpItem, spring, stagger } from '../../lib/motion'
 import type { Group } from '../../lib/types'
 
 export function DashboardScreen() {
+  const t = useT()
   const { groups, loading, mode, error, reload } = useStore()
   const { profile } = useProfile()
   const { profile: cloudProfile, session } = useAuth()
@@ -53,11 +55,11 @@ export function DashboardScreen() {
           <Header />
           <EmptyState
             icon={<TriangleAlert size={26} />}
-            title="Không tải được nhóm"
+            title={t.home.loadFailedTitle}
             description={error}
             action={
               <Button size="lg" variant="secondary" onClick={() => void reload()}>
-                <RefreshCw size={18} /> Thử lại
+                <RefreshCw size={18} /> {t.common.retry}
               </Button>
             }
           />
@@ -73,11 +75,11 @@ export function DashboardScreen() {
           <Header />
           <EmptyState
             icon={<Sparkles size={26} />}
-            title="Chào mừng đến Splitz"
-            description="Tạo nhóm đầu tiên để bắt đầu ghi chi tiêu và chia tiền sòng phẳng."
+            title={t.home.welcomeTitle}
+            description={t.home.welcomeDescription}
             action={
               <Button size="lg" onClick={openCreateGroup}>
-                <Sparkles size={18} /> Tạo nhóm đầu tiên
+                <Sparkles size={18} /> {t.home.createFirstGroup}
               </Button>
             }
           />
@@ -116,8 +118,8 @@ export function DashboardScreen() {
                 <Sparkles size={18} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold text-app">Phân tích chi tiêu bằng AI</span>
-                <span className="block text-xs text-muted">Nhận xét chi tiêu, xu hướng & gợi ý quyết toán</span>
+                <span className="block text-sm font-bold text-app">{t.home.aiInsightTitle}</span>
+                <span className="block text-xs text-muted">{t.home.aiInsightSubtitle}</span>
               </span>
             </button>
           </motion.div>
@@ -125,7 +127,7 @@ export function DashboardScreen() {
 
         {summary.unsettled.length > 0 && (
           <motion.section variants={fadeUpItem} className="space-y-2.5">
-            <SectionTitle>Cần quyết toán</SectionTitle>
+            <SectionTitle>{t.home.needsSettlement}</SectionTitle>
             <div className="flex gap-2.5 overflow-x-auto no-scrollbar -mx-5 px-5">
               {summary.unsettled.map((d) => (
                 <SettleChip
@@ -142,12 +144,12 @@ export function DashboardScreen() {
         {recent.length > 0 && (
           <motion.section variants={fadeUpItem} className="space-y-2.5">
             <div className="flex items-center justify-between">
-              <SectionTitle>Gần đây</SectionTitle>
+              <SectionTitle>{t.home.recent}</SectionTitle>
               <button
                 onClick={() => navigate('/groups')}
                 className="text-xs font-semibold text-brand-600 dark:text-brand-300 press"
               >
-                Xem nhóm
+                {t.home.viewGroups}
               </button>
             </div>
             <div className="card divide-y divide-[var(--border)] overflow-hidden p-0">
@@ -167,7 +169,7 @@ export function DashboardScreen() {
         <InsightSheet
           open={insightOpen}
           onClose={() => setInsightOpen(false)}
-          title="Phân tích chi tiêu"
+          title={t.home.insightTitle}
           stats={insightOpen ? buildDashboardInsightStats(groups, profile.name) : null}
         />
       </motion.div>
@@ -176,15 +178,16 @@ export function DashboardScreen() {
 }
 
 function Header() {
+  const t = useT()
   const { profile, hasName } = useProfile()
   const navigate = useNavigate()
   return (
     <header className="flex items-center justify-between mb-5">
       <div>
-        <p className="text-sm text-muted">{hasName ? `Chào ${profile.name} 👋` : 'Xin chào 👋'}</p>
+        <p className="text-sm text-muted">{hasName ? t.home.greeting({ name: profile.name }) : t.home.hello}</p>
         <h1 className="text-xl font-extrabold tracking-tight text-gradient">Splitz</h1>
       </div>
-      <button onClick={() => navigate('/settings')} aria-label="Hồ sơ" className="press">
+      <button onClick={() => navigate('/settings')} aria-label={t.home.profile} className="press">
         <Avatar name={hasName ? profile.name : '?'} color="indigo" src={profile.avatarUrl} />
       </button>
     </header>
@@ -196,6 +199,7 @@ function SectionTitle({ children }: { children: ReactNode }) {
 }
 
 function BalanceHero({ summary }: { summary: ReturnType<typeof buildDashboard> }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
 
   // Khi đã khớp "tôi": hiện nợ ròng cá nhân. Nếu chưa: hiện tổng chi.
@@ -210,26 +214,26 @@ function BalanceHero({ summary }: { summary: ReturnType<typeof buildDashboard> }
           <>
             <div className="flex items-center gap-1.5 text-white/80 text-[13px] font-medium">
               {settledUp ? (
-                <>Bạn đã sòng phẳng</>
+                <>{t.home.allSettled}</>
               ) : owing ? (
                 <>
-                  <ArrowUpRight size={14} /> Bạn đang nợ
+                  <ArrowUpRight size={14} /> {t.home.youOwe}
                 </>
               ) : (
                 <>
-                  <ArrowDownLeft size={14} /> Bạn được nhận
+                  <ArrowDownLeft size={14} /> {t.home.youAreOwed}
                 </>
               )}
             </div>
             <p className="mt-1.5 text-[2.1rem] leading-none font-extrabold tnum">
-              {settledUp ? '0đ' : <CountUpVnd value={Math.abs(summary.myNet)} />}
+              {settledUp ? `0${t.format.currencySuffix}` : <CountUpVnd value={Math.abs(summary.myNet)} />}
             </p>
             {(summary.toReceive > 0 || summary.toPay > 0) && !settledUp && (
               <button
                 onClick={() => setOpen((v) => !v)}
                 className="press mt-3 inline-flex items-center gap-1.5 text-xs font-semibold bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5"
               >
-                Chi tiết
+                {t.home.details}
                 <ChevronDown
                   size={14}
                   className={`transition-transform ${open ? 'rotate-180' : ''}`}
@@ -245,8 +249,8 @@ function BalanceHero({ summary }: { summary: ReturnType<typeof buildDashboard> }
                   className="overflow-hidden"
                 >
                   <div className="mt-3 flex gap-2">
-                    <SplitStat label="Được nhận" value={summary.toReceive} />
-                    <SplitStat label="Còn nợ" value={summary.toPay} />
+                    <SplitStat label={t.home.toReceive} value={summary.toReceive} />
+                    <SplitStat label={t.home.toPay} value={summary.toPay} />
                   </div>
                 </motion.div>
               )}
@@ -255,13 +259,13 @@ function BalanceHero({ summary }: { summary: ReturnType<typeof buildDashboard> }
         ) : (
           <>
             <div className="flex items-center gap-1.5 text-white/80 text-[13px] font-medium">
-              <Wallet size={14} /> Tổng chi tiêu các nhóm
+              <Wallet size={14} /> {t.home.totalSpendAllGroups}
             </div>
             <p className="mt-1.5 text-[2.1rem] leading-none font-extrabold tnum">
               <CountUpVnd value={summary.totalSpend} />
             </p>
             <p className="mt-2.5 text-xs text-white/70">
-              Đặt tên của bạn trong Cài đặt để xem bạn đang nợ hay được nhận.
+              {t.home.setNameHint}
             </p>
           </>
         )}
@@ -288,6 +292,7 @@ function SettleChip({
   myBalance: number | undefined
   onClick: () => void
 }) {
+  const t = useT()
   const owing = myBalance != null && myBalance < 0
   const receiving = myBalance != null && myBalance > 0
   return (
@@ -305,10 +310,14 @@ function SettleChip({
         <span
           className={`text-sm font-bold tnum ${owing ? 'text-neg' : receiving ? 'text-pos' : 'text-faint'}`}
         >
-          {owing ? `Nợ ${formatVnd(-myBalance)}` : receiving ? `Nhận ${formatVnd(myBalance)}` : '—'}
+          {owing
+            ? t.home.oweAmount({ amount: formatVnd(-myBalance) })
+            : receiving
+              ? t.home.receiveAmount({ amount: formatVnd(myBalance) })
+              : '—'}
         </span>
       ) : (
-        <span className="text-sm font-semibold text-muted">Chưa quyết toán</span>
+        <span className="text-sm font-semibold text-muted">{t.home.notSettled}</span>
       )}
     </button>
   )
@@ -325,6 +334,7 @@ function RecentRow({
   amount: number
   onClick: () => void
 }) {
+  const t = useT()
   return (
     <button
       onClick={onClick}
@@ -335,7 +345,7 @@ function RecentRow({
       </span>
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-sm leading-snug line-clamp-2 break-words">{title}</p>
-        <p className="text-xs text-muted truncate">{payer} trả</p>
+        <p className="text-xs text-muted truncate">{t.home.paidBy({ name: payer })}</p>
       </div>
       <span className="font-bold tnum text-sm shrink-0">{formatVnd(amount)}</span>
     </button>

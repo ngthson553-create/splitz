@@ -10,6 +10,7 @@ import { Avatar, Button, Card, Segmented } from '../../components/ui'
 import { settleState, type SettleState } from '../../lib/settlement'
 import { totalGroupSpend } from '../../lib/settlement/balances'
 import { formatVnd } from '../../lib/format'
+import { useT } from '../../lib/i18n'
 import { ExpensesTab } from './ExpensesTab'
 import { SettleTab } from './SettleTab'
 import { GroupSettingsSheet } from './GroupSettingsSheet'
@@ -37,6 +38,7 @@ export function GroupScreen() {
   const [insightOpen, setInsightOpen] = useState(false)
   const [qrTransfer, setQrTransfer] = useState<SettlementTransfer | null>(null)
   const { profile } = useProfile()
+  const t = useT()
 
   const settlement = useMemo(() => (group ? settleState(group) : null), [group])
 
@@ -56,14 +58,14 @@ export function GroupScreen() {
               <TriangleAlert size={24} />
             </div>
             <div className="space-y-1.5">
-              <p className="font-semibold text-app">Không tải được nhóm này.</p>
+              <p className="font-semibold text-app">{t.group.loadErrorTitle}</p>
               <p className="text-sm text-muted">{error}</p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
               <Button variant="secondary" onClick={() => void reload()}>
-                <RefreshCw size={16} /> Thử lại
+                <RefreshCw size={16} /> {t.common.retry}
               </Button>
-              <Button onClick={() => navigate('/groups')}>Về danh sách nhóm</Button>
+              <Button onClick={() => navigate('/groups')}>{t.group.backToGroups}</Button>
             </div>
           </div>
         </PageTransition>
@@ -73,8 +75,8 @@ export function GroupScreen() {
     return (
       <PageTransition>
         <div className="px-5 pt-20 text-center space-y-4">
-          <p className="text-muted">Không tìm thấy nhóm này.</p>
-          <Button onClick={() => navigate('/groups')}>Về danh sách nhóm</Button>
+          <p className="text-muted">{t.group.notFoundTitle}</p>
+          <Button onClick={() => navigate('/groups')}>{t.group.backToGroups}</Button>
         </div>
       </PageTransition>
     )
@@ -96,7 +98,7 @@ export function GroupScreen() {
             <div className="flex items-center justify-between">
               <button
                 onClick={() => navigate('/groups')}
-                aria-label="Quay lại"
+                aria-label={t.common.back}
                 className="press grid place-items-center h-9 w-9 rounded-xl bg-white/15 border border-white/20 text-white hover:bg-white/25"
               >
                 <ArrowLeft size={18} />
@@ -104,14 +106,14 @@ export function GroupScreen() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setInsightOpen(true)}
-                  aria-label="Phân tích AI"
+                  aria-label={t.group.insightAria}
                   className="press grid place-items-center h-9 w-9 rounded-xl bg-white/15 border border-white/20 text-white hover:bg-white/25"
                 >
                   <Sparkles size={18} />
                 </button>
                 <button
                   onClick={() => setSettingsOpen(true)}
-                  aria-label="Cài đặt nhóm"
+                  aria-label={t.group.settingsTitle}
                   className="press grid place-items-center h-9 w-9 rounded-xl bg-white/15 border border-white/20 text-white hover:bg-white/25"
                 >
                   <Settings2 size={18} />
@@ -128,7 +130,7 @@ export function GroupScreen() {
 
             <div className="mt-2.5 flex items-end justify-between gap-3">
               <div>
-                <p className="text-white/70 text-xs">Tổng chi</p>
+                <p className="text-white/70 text-xs">{t.group.totalSpent}</p>
                 <CountUpVnd value={spend} className="text-lg font-extrabold tnum leading-tight lg:text-2xl" />
               </div>
               <div className="flex -space-x-2 items-center">
@@ -159,12 +161,12 @@ export function GroupScreen() {
             onChange={setTab}
             className="lg:max-w-md"
             options={[
-              { value: 'expenses', label: 'Chi tiêu' },
+              { value: 'expenses', label: t.group.expensesTab },
               {
                 value: 'settle',
                 label: (
                   <span className="inline-flex items-center gap-1.5">
-                    Quyết toán
+                    {t.group.settleTab}
                     {owing && <span className="h-1.5 w-1.5 rounded-full bg-neg" />}
                   </span>
                 ),
@@ -205,7 +207,7 @@ export function GroupScreen() {
                   exit={{ scale: 0, opacity: 0 }}
                   transition={{ type: "spring", stiffness: 420, damping: 28 }}
                   onClick={() => setAddOpen(true)}
-                  aria-label="Ghi khoản chi"
+                  aria-label={t.group.addExpense}
                   className="pointer-events-auto grid place-items-center h-[3.25rem] w-[3.25rem] rounded-2xl gradient-brand text-white shadow-glow press hover:brightness-110"
                 >
                   <Plus size={24} strokeWidth={2.5} />
@@ -221,7 +223,7 @@ export function GroupScreen() {
         <InsightSheet
           open={insightOpen}
           onClose={() => setInsightOpen(false)}
-          title={`Phân tích · ${group.name}`}
+          title={t.group.insightTitle({ name: group.name })}
           stats={insightOpen ? buildGroupInsightStats(group, profile.name) : null}
         />
       </div>
@@ -246,6 +248,7 @@ function GroupDesktopPanel({
 }) {
   const openItems = settlement.pending.length + settlement.transfers.length
   const settled = settlement.isSettled
+  const t = useT()
 
   return (
     <aside className="hidden min-w-0 lg:block">
@@ -256,7 +259,7 @@ function GroupDesktopPanel({
               {group.emoji ?? '💸'}
             </span>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-muted">Không gian nhóm</p>
+              <p className="text-xs font-semibold text-muted">{t.group.groupSpace}</p>
               <h2 className="mt-0.5 text-lg font-extrabold leading-tight line-clamp-3 break-words">
                 {group.name}
               </h2>
@@ -264,26 +267,26 @@ function GroupDesktopPanel({
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <DesktopMetric icon={<Wallet size={15} />} label="Tổng chi" value={<CountUpVnd value={spend} />} />
-            <DesktopMetric icon={<ReceiptText size={15} />} label="Khoản chi" value={group.expenses.length} />
-            <DesktopMetric icon={<Users size={15} />} label="Thành viên" value={group.members.length} />
+            <DesktopMetric icon={<Wallet size={15} />} label={t.group.totalSpent} value={<CountUpVnd value={spend} />} />
+            <DesktopMetric icon={<ReceiptText size={15} />} label={t.group.expenseNoun} value={group.expenses.length} />
+            <DesktopMetric icon={<Users size={15} />} label={t.group.members} value={group.members.length} />
             <DesktopMetric
               icon={settled ? <CheckCircle2 size={15} /> : <Clock size={15} />}
-              label="Quyết toán"
-              value={settled ? 'Xong' : `${openItems} mục`}
+              label={t.group.settleTab}
+              value={settled ? t.common.done : t.group.itemsPending({ n: openItems })}
             />
           </div>
 
           <div className="space-y-2">
             <Button fullWidth onClick={onAddExpense}>
-              <Plus size={16} /> Ghi khoản chi
+              <Plus size={16} /> {t.group.addExpense}
             </Button>
             <div className="grid grid-cols-2 gap-2">
               <Button fullWidth variant="secondary" onClick={onInsight}>
                 <Sparkles size={15} /> AI
               </Button>
               <Button fullWidth variant="secondary" onClick={onSettings}>
-                <Settings2 size={15} /> Cài đặt
+                <Settings2 size={15} /> {t.group.settingsShort}
               </Button>
             </div>
           </div>
@@ -291,7 +294,7 @@ function GroupDesktopPanel({
 
         <Card className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-extrabold">Thành viên</h3>
+            <h3 className="text-sm font-extrabold">{t.group.members}</h3>
             <span className="text-xs font-bold text-muted tnum">{group.members.length}</span>
           </div>
           <div className="space-y-2">
@@ -301,14 +304,14 @@ function GroupDesktopPanel({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold leading-snug line-clamp-2 break-words">{m.name}</p>
                   <p className="mt-0.5 text-xs text-muted line-clamp-1">
-                    {m.role === 'owner' ? 'Chủ nhóm' : m.bankCode ? 'Có QR chuyển khoản' : 'Thành viên'}
+                    {m.role === 'owner' ? t.group.owner : m.bankCode ? t.group.hasQr : t.group.members}
                   </p>
                 </div>
               </div>
             ))}
             {group.members.length > 6 && (
               <div className="rounded-2xl surface-sunken border border-[var(--border)] p-2.5 text-center text-xs font-semibold text-muted">
-                +{group.members.length - 6} thành viên khác
+                {t.group.moreMembers({ n: group.members.length - 6 })}
               </div>
             )}
           </div>
@@ -318,14 +321,17 @@ function GroupDesktopPanel({
           <Card className="space-y-2 border-[var(--border-strong)]">
             <div className="flex items-center gap-2 text-brand-600 dark:text-brand-300">
               <Clock size={16} />
-              <p className="text-sm font-extrabold">Còn việc quyết toán</p>
+              <p className="text-sm font-extrabold">{t.group.pendingSettlements}</p>
             </div>
             <p className="text-xs leading-relaxed text-muted">
               {settlement.transfers.length > 0
-                ? `${settlement.transfers.length} lượt chuyển còn lại, tổng gợi ý đang chờ ${formatVnd(
-                    settlement.transfers.reduce((sum, item) => sum + item.amount, 0),
-                  )}.`
-                : 'Có khoản đang chờ xác nhận hai chiều.'}
+                ? t.group.transfersRemaining({
+                    n: settlement.transfers.length,
+                    amount: formatVnd(
+                      settlement.transfers.reduce((sum, item) => sum + item.amount, 0),
+                    ),
+                  })
+                : t.group.awaitingConfirmations}
             </p>
           </Card>
         )}

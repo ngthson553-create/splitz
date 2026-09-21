@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom'
 import { Loader2, Wallet } from 'lucide-react'
 import { Button } from '../../components/ui'
 import { useAuth } from '../../lib/auth'
+import { useT } from '../../lib/i18n'
 import { useToast } from '../../components/Toast'
 import { trackEvent } from '../../lib/analytics'
 
 export function LoginScreen() {
   const { signInWithGoogle, signInWithZalo, zaloEnabled } = useAuth()
   const toast = useToast()
+  const t = useT()
   const [busy, setBusy] = useState(false)
 
   async function onGoogle() {
@@ -18,7 +20,7 @@ export function LoginScreen() {
       await signInWithGoogle()
       // Trình duyệt sẽ điều hướng sang Google; nếu quay lại đây tức là có lỗi.
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Đăng nhập thất bại.')
+      toast.error(e instanceof Error ? e.message : t.auth.signInFailed)
       setBusy(false)
     }
   }
@@ -29,7 +31,7 @@ export function LoginScreen() {
     try {
       await signInWithZalo()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Đăng nhập Zalo thất bại.')
+      toast.error(e instanceof Error ? e.message : t.auth.zaloSignInFailed)
       setBusy(false)
     }
   }
@@ -43,13 +45,13 @@ export function LoginScreen() {
         </div>
         <h1 className="text-3xl font-extrabold tracking-tight text-gradient">Splitz</h1>
         <p className="mt-2 text-sm text-muted text-center max-w-xs">
-          Chia tiền nhóm thông minh — minh bạch, nhanh gọn, tạo QR chuyển khoản tức thì.
+          {t.auth.tagline}
         </p>
 
         <div className="w-full mt-10 space-y-3">
           <Button fullWidth size="lg" onClick={onGoogle} disabled={busy}>
             {busy ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
-            Tiếp tục với Google
+            {t.auth.continueWithGoogle}
           </Button>
 
           {zaloEnabled ? (
@@ -61,7 +63,7 @@ export function LoginScreen() {
               style={{ background: '#0068FF' }}
             >
               <ZaloIcon />
-              Tiếp tục với Zalo
+              {t.auth.continueWithZalo}
             </button>
           ) : (
             <button
@@ -70,24 +72,24 @@ export function LoginScreen() {
               className="w-full h-12 px-5 rounded-2xl inline-flex items-center justify-center gap-2 font-semibold text-[15px] bg-[var(--surface-solid)] border border-[var(--border)] text-faint cursor-not-allowed"
             >
               <ZaloIcon />
-              Tiếp tục với Zalo
+              {t.auth.continueWithZalo}
               <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--surface-2)] text-muted">
-                Sắp có
+                {t.auth.comingSoon}
               </span>
             </button>
           )}
         </div>
 
         <p className="mt-8 text-xs text-faint text-center max-w-xs leading-relaxed">
-          Khi đăng nhập, bạn đồng ý với{' '}
+          {t.auth.agreePrefix}{' '}
           <Link to="/terms" className="text-brand-600 dark:text-brand-300 font-semibold underline">
-            Điều khoản sử dụng
+            {t.auth.termsLink}
           </Link>{' '}
-          và{' '}
+          {t.auth.agreeAnd}{' '}
           <Link to="/privacy" className="text-brand-600 dark:text-brand-300 font-semibold underline">
-            Chính sách bảo mật
+            {t.auth.privacyLink}
           </Link>{' '}
-          của Splitz.
+          {t.auth.agreeSuffix}
         </p>
       </div>
     </div>

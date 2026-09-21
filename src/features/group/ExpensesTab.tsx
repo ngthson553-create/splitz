@@ -3,6 +3,7 @@ import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motio
 import { Receipt, Trash2 } from 'lucide-react'
 import { Avatar, Button, EmptyState } from '../../components/ui'
 import { formatRelative, formatVnd } from '../../lib/format'
+import { useT } from '../../lib/i18n'
 import { useStore } from '../../lib/store'
 import { useConfirm } from '../../components/ConfirmDialog'
 import { useToast } from '../../components/Toast'
@@ -16,20 +17,13 @@ import type { Expense, Group, SplitMode } from '../../lib/types'
 import { ExpenseSheet } from '../expense/ExpenseSheet'
 import { ExpenseDetailSheet } from '../expense/ExpenseDetailSheet'
 
-const SPLIT_LABEL: Record<SplitMode, string> = {
-  equal: 'Chia đều',
-  shares: 'Theo phần',
-  percent: 'Phần trăm',
-  exact: 'Nhập tay',
-  itemized: 'Theo món',
-}
-
 export function ExpensesTab({ group, onAddExpense }: { group: Group; onAddExpense: () => void }) {
   const { mode, removeExpense } = useStore()
   const { profile } = useAuth()
   const confirm = useConfirm()
   const toast = useToast()
   const notifications = useNotifications()
+  const t = useT()
   const memberById = useMemo(() => new Map(group.members.map((m) => [m.id, m])), [group.members])
 
   const [detail, setDetail] = useState<Expense | null>(null)
@@ -45,14 +39,14 @@ export function ExpensesTab({ group, onAddExpense }: { group: Group; onAddExpens
 
   async function remove(expense: Expense, ask = true) {
     if (!canManage(expense)) {
-      toast.error('Chỉ chủ nhóm hoặc người tạo khoản chi mới được xoá khoản này.')
+      toast.error(t.group.deleteForbiddenToast)
       return
     }
     if (ask) {
       const ok = await confirm({
-        title: `Xoá “${expense.title}”?`,
-        description: `${formatVnd(expense.amount)} sẽ bị xoá khỏi nhóm.`,
-        confirmLabel: 'Xoá',
+        title: t.group.deleteExpenseTitle({ title: expense.title }),
+        description: t.group.deleteExpenseDesc({ amount: formatVnd(expense.amount) }),
+        confirmLabel: t.common.delete,
         danger: true,
       })
       if (!ok) return
@@ -62,16 +56,16 @@ export function ExpensesTab({ group, onAddExpense }: { group: Group; onAddExpens
       trackEvent('expense_deleted', { amount_vnd: expense.amount, split_mode: expense.splitMode })
     } catch (e) {
       setDetail(null)
-      if (isConflict(e)) return toast.error('Khoản chi đã thay đổi, đã tải lại danh sách.')
-      return toast.error(errorMessage(e, 'Không xoá được khoản chi.'))
+      if (isConflict(e)) return toast.error(t.group.expenseConflictToast)
+      return toast.error(errorMessage(e, t.group.deleteExpenseError))
     }
     notifications.add({
       kind: 'activity',
-      title: `Đã xoá “${expense.title}”`,
+      title: t.group.expenseDeletedTitle({ title: expense.title }),
       body: `${formatVnd(expense.amount)} · ${group.name}`,
       href: `/g/${group.id}`,
     })
-    toast.success('Đã xoá khoản chi')
+    toast.success(t.group.expenseDeletedToast)
     setDetail(null)
   }
 
@@ -80,9 +74,9 @@ export function ExpensesTab({ group, onAddExpense }: { group: Group; onAddExpens
       <>
         <EmptyState
           icon={<Receipt size={26} />}
-          title="Chưa có khoản chi"
-          description="Bắt đầu ghi các khoản đã chi để chia cho cả nhóm."
-          action={<Button size="lg" onClick={onAddExpense}>+ Ghi khoản chi</Button>}
+          title={t.group.noExpensesTitle}
+          description={t.group.noExpensesDesc}
+          action={<Button size="lg" onClick={onAddExpense}>+ {t.group.addExpense}</Button>}
         />
         <ExpenseSheet group={group} open={Boolean(editing)} expense={editing ?? undefined} onClose={() => setEditing(null)} />
       </>
@@ -183,6 +177,14 @@ function ExpenseRow({
   payerCount?: number
   onClick: () => void
 }) {
+  const t = useT()
+  const splitLabels: Record<SplitMode, string> = {
+    equal: t.group.splitEqual,
+    shares: t.group.splitShares,
+    percent: t.group.splitPercent,
+    exact: t.group.splitExact,
+    itemized: t.group.splitItemized,
+  }
   return (
     <button
       onClick={onClick}
@@ -195,8 +197,8 @@ function ExpenseRow({
         </p>
         <p className="mt-0.5 text-xs text-muted leading-snug line-clamp-2 break-words">
           {payerName}
-          {payerCount && payerCount > 1 ? ` +${payerCount - 1}` : ''} trả ·{' '}
-          {SPLIT_LABEL[expense.splitMode]} · {formatRelative(expense.paidAt)}
+          {payerCount && payerCount > 1 ? ` +${payerCount - 1}` : ''} {t.group.paidLabel} ·{' '}
+          {splitLabels[expense.splitMode]} · {formatRelative(expense.paidAt)}
         </p>
       </div>
       <span className="mt-0.5 max-w-[8.5rem] text-right font-extrabold tnum text-sm leading-tight text-app shrink-0 sm:max-w-none lg:text-[15px]">

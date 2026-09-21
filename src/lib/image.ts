@@ -2,6 +2,8 @@
  * Đọc file ảnh, cắt vuông giữa và thu nhỏ về maxSize px, trả về data URL JPEG.
  * Giữ localStorage nhẹ (avatar ~vài chục KB thay vì vài MB).
  */
+import { t } from './i18n'
+
 export async function fileToAvatarDataUrl(file: File, maxSize = 256, quality = 0.82): Promise<string> {
   const dataUrl = await readAsDataUrl(file)
   const img = await loadImage(dataUrl)
@@ -59,7 +61,7 @@ function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result as string)
-    reader.onerror = () => reject(new Error('Không đọc được tệp ảnh.'))
+    reader.onerror = () => reject(new Error(t().errors.fileReadFailed))
     reader.readAsDataURL(file)
   })
 }
@@ -91,16 +93,16 @@ async function loadImageFile(file: File): Promise<HTMLImageElement> {
 function unsupportedImageError(file: File): Error {
   const isHeic = /image\/(heic|heif)/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)
   if (isHeic) {
-    return new Error('Ảnh HEIC/HEIF này chưa đọc được trên thiết bị hiện tại. Hãy đổi sang JPG/PNG hoặc chụp lại rõ hơn.')
+    return new Error(t().errors.imageHeicUnsupported)
   }
-  return new Error('Không đọc được ảnh này. Hãy thử ảnh JPG/PNG khác hoặc chụp lại rõ hơn.')
+  return new Error(t().errors.imageUnsupported)
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('Không tải được ảnh.'))
+    img.onerror = () => reject(new Error(t().errors.imageLoadFailed))
     img.src = src
   })
 }
