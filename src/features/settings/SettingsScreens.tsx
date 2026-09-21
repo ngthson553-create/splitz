@@ -7,7 +7,7 @@ import { useStore } from '../../lib/store'
 import { useProfile } from '../../lib/profile'
 import { useAuth } from '../../lib/auth'
 import { useSubscription } from '../../lib/subscription'
-import { BankFields, type BankValue } from '../../components/BankFields'
+import { PaymentMethodFields, isPaymentMethodComplete, type PaymentMethodValue } from '../../components/PaymentMethodFields'
 import { Avatar, Badge, Button, Card, Field, Input } from '../../components/ui'
 import { PageTransition } from '../../components/PageTransition'
 import { useConfirm } from '../../components/ConfirmDialog'
@@ -138,15 +138,17 @@ export function BankSettingsScreen() {
   const toast = useToast()
   const navigate = useNavigate()
   const t = useT()
-  const [bank, setBank] = useState<BankValue>({ bankCode: '', accountNumber: '', accountName: '' })
+  const [bank, setBank] = useState<PaymentMethodValue>({ bankCode: '', bankAccountNumber: '', bankAccountName: '' })
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (profile) {
       setBank({
         bankCode: profile.bankCode ?? '',
-        accountNumber: profile.bankAccountNumber ?? '',
-        accountName: profile.bankAccountName ?? '',
+        bankAccountNumber: profile.bankAccountNumber ?? '',
+        bankAccountName: profile.bankAccountName ?? '',
+        paymentRail: profile.paymentRail,
+        paymentData: profile.paymentData,
       })
     }
   }, [profile])
@@ -157,20 +159,24 @@ export function BankSettingsScreen() {
 
   const changed =
     bank.bankCode !== (profile?.bankCode ?? '') ||
-    bank.accountNumber !== (profile?.bankAccountNumber ?? '') ||
-    bank.accountName !== (profile?.bankAccountName ?? '')
+    bank.bankAccountNumber !== (profile?.bankAccountNumber ?? '') ||
+    bank.bankAccountName !== (profile?.bankAccountName ?? '') ||
+    bank.paymentRail !== profile?.paymentRail ||
+    bank.paymentData !== profile?.paymentData
 
   async function save() {
-    if (!bank.bankCode || !bank.accountNumber.trim() || !bank.accountName.trim()) {
-      toast.error(t.settings.bankMissing)
+    if (!isPaymentMethodComplete(bank)) {
+      toast.error(t.payments.methodRequired)
       return
     }
     setSaving(true)
     try {
       await updateProfile({
         bankCode: bank.bankCode,
-        bankAccountNumber: bank.accountNumber,
-        bankAccountName: bank.accountName,
+        bankAccountNumber: bank.bankAccountNumber,
+        bankAccountName: bank.bankAccountName,
+        paymentRail: bank.paymentRail,
+        paymentData: bank.paymentData,
       })
       toast.success(t.settings.bankSaved)
     } catch (e) {
@@ -184,7 +190,7 @@ export function BankSettingsScreen() {
     <SettingsShell title={t.settings.bankTitle}>
       <Card className="space-y-3">
         <p className="text-sm text-muted">{t.settings.bankInfoDesc}</p>
-        <BankFields value={bank} onChange={setBank} onScanError={(m) => toast.error(m)} />
+        <PaymentMethodFields value={bank} onChange={setBank} onScanError={(m) => toast.error(m)} />
         <Button fullWidth onClick={save} disabled={!changed || saving}>
           {t.settings.saveBank}
         </Button>

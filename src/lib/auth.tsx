@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import type { Member } from './types'
 import { getSupabase, isSupabaseConfigured } from './supabase/client'
 import { identifyUser, resetUser } from './analytics'
 import { isZaloConfigured, startZaloLogin } from './zalo'
@@ -23,6 +24,9 @@ export type CloudProfile = {
   bankCode?: string
   bankAccountNumber?: string
   bankAccountName?: string
+  /** Phương thức nhận tiền ngoài VietQR (SEPA/UPI/PromptPay/Pix/handle). */
+  paymentRail?: Member['paymentRail']
+  paymentData?: Record<string, string>
   /** null = chưa hoàn tất onboarding 4 bước. */
   onboardedAt?: string | null
 }
@@ -34,6 +38,9 @@ export type OnboardingInput = {
   bankCode: string
   bankAccountNumber: string
   bankAccountName: string
+  /** Dùng khi chọn rail ngoài VietQR thay vì ngân hàng VN. */
+  paymentRail?: Member['paymentRail']
+  paymentData?: Record<string, string>
 }
 
 type AuthValue = {
@@ -68,6 +75,8 @@ type ProfileRow = {
   bank_code: string | null
   bank_account_number: string | null
   bank_account_name: string | null
+  payment_rail: string | null
+  payment_data: Record<string, string> | null
   onboarded_at: string | null
 }
 
@@ -80,6 +89,8 @@ function mapProfile(row: ProfileRow): CloudProfile {
     bankCode: row.bank_code ?? undefined,
     bankAccountNumber: row.bank_account_number ?? undefined,
     bankAccountName: row.bank_account_name ?? undefined,
+    paymentRail: (row.payment_rail as Member['paymentRail']) ?? undefined,
+    paymentData: row.payment_data ?? undefined,
     onboardedAt: row.onboarded_at,
   }
 }
@@ -99,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data, error } = await sb
       .from('profiles')
-      .select('id,email,display_name,avatar_url,bank_code,bank_account_number,bank_account_name,onboarded_at')
+      .select('id,email,display_name,avatar_url,bank_code,bank_account_number,bank_account_name,payment_rail,payment_data,onboarded_at')
       .eq('id', userId)
       .maybeSingle()
     if (error) throw error
@@ -123,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: created, error: insErr } = await sb
       .from('profiles')
       .upsert(insertRow, { onConflict: 'id' })
-      .select('id,email,display_name,avatar_url,bank_code,bank_account_number,bank_account_name,onboarded_at')
+      .select('id,email,display_name,avatar_url,bank_code,bank_account_number,bank_account_name,payment_rail,payment_data,onboarded_at')
       .single()
     if (insErr) throw insErr
     setProfile(mapProfile(created as ProfileRow))
@@ -205,6 +216,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         bank_code: input.bankCode || null,
         bank_account_number: input.bankAccountNumber.trim() || null,
         bank_account_name: input.bankAccountName.trim() || null,
+        payment_rail: input.paymentRail ?? null,
+        payment_data: input.paymentData ?? null,
         onboarded_at: new Date().toISOString(),
       }
       const { data, error } = await sb
@@ -224,12 +237,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async (patch: Partial<OnboardingInput>) => {
       const sb = getSupabase()
       if (!session) throw new Error(t().errors.notSignedIn)
-      const row: Record<string, string | null> = {}
+      const row: Record<string, string | Record<string, string> | null> = {}
       if (patch.displayName !== undefined) row.display_name = patch.displayName.trim()
       if (patch.avatarUrl !== undefined) row.avatar_url = patch.avatarUrl ?? null
       if (patch.bankCode !== undefined) row.bank_code = patch.bankCode || null
       if (patch.bankAccountNumber !== undefined) row.bank_account_number = patch.bankAccountNumber.trim() || null
       if (patch.bankAccountName !== undefined) row.bank_account_name = patch.bankAccountName.trim() || null
+      // Mọi lần lưu bank* đều mang theo trạng thái rail đầy đủ — quay về
+      // VietQR (rail undefined) cũng phải XOÁ rail cũ trong DB.
+      if (patch.paymentRail !== undefined || patch.bankCode !== undefined) {
+        row.payment_rail = patch.paymentRail ?? null
+        row.payment_data = patch.paymentData ?? null
+      }
       const { data, error } = await sb
         .from('profiles')
         .update(row)

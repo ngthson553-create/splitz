@@ -2,7 +2,7 @@ import { useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Camera, Check, ChevronRight, Loader2, ShieldCheck, Sparkles, Users, Wallet } from 'lucide-react'
 import { Avatar, Button, Field, Input } from '../../components/ui'
-import { BankFields, type BankValue } from '../../components/BankFields'
+import { PaymentMethodFields, isPaymentMethodComplete, type PaymentMethodValue } from '../../components/PaymentMethodFields'
 import { useAuth } from '../../lib/auth'
 import { useT } from '../../lib/i18n'
 import { useToast } from '../../components/Toast'
@@ -21,10 +21,12 @@ export function OnboardingScreen() {
   const [step, setStep] = useState<Step>('consent')
   const [name, setName] = useState(profile?.displayName ?? '')
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(profile?.avatarUrl)
-  const [bank, setBank] = useState<BankValue>({
+  const [bank, setBank] = useState<PaymentMethodValue>({
     bankCode: profile?.bankCode ?? '',
-    accountNumber: profile?.bankAccountNumber ?? '',
-    accountName: profile?.bankAccountName ?? '',
+    bankAccountNumber: profile?.bankAccountNumber ?? '',
+    bankAccountName: profile?.bankAccountName ?? '',
+    paymentRail: profile?.paymentRail,
+    paymentData: profile?.paymentData,
   })
   const [saving, setSaving] = useState(false)
 
@@ -47,8 +49,8 @@ export function OnboardingScreen() {
       return
     }
     if (step === 'bank') {
-      if (!bank.bankCode || !bank.accountNumber.trim() || !bank.accountName.trim()) {
-        toast.error(t.auth.bankRequired)
+      if (!isPaymentMethodComplete(bank)) {
+        toast.error(t.payments.methodRequired)
         return
       }
     }
@@ -62,10 +64,12 @@ export function OnboardingScreen() {
         displayName: name,
         avatarUrl,
         bankCode: bank.bankCode,
-        bankAccountNumber: bank.accountNumber,
-        bankAccountName: bank.accountName,
+        bankAccountNumber: bank.bankAccountNumber,
+        bankAccountName: bank.bankAccountName,
+        paymentRail: bank.paymentRail,
+        paymentData: bank.paymentData,
       })
-      trackEvent('onboarding_completed', { has_bank: Boolean(bank.bankCode && bank.accountNumber) })
+      trackEvent('onboarding_completed', { has_bank: Boolean(bank.bankCode && bank.bankAccountNumber) })
       // ready chuyển true → guard tự điều hướng vào app.
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t.auth.profileSaveFailed)
@@ -107,7 +111,7 @@ export function OnboardingScreen() {
                 title={t.auth.bankTitle}
                 desc={t.auth.bankDesc}
               />
-              <BankFields value={bank} onChange={setBank} onScanError={(m) => toast.error(m)} />
+              <PaymentMethodFields value={bank} onChange={setBank} onScanError={(m) => toast.error(m)} />
             </div>
           )}
           {step === 'tour' && <TourStep />}
