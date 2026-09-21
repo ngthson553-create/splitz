@@ -5,6 +5,7 @@ import {
   Crown,
   HelpCircle,
   Info,
+  Languages,
   LogIn,
   Moon,
   Palette,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../../lib/theme'
+import { useT } from '../../lib/i18n'
 import { useStore } from '../../lib/store'
 import { useProfile } from '../../lib/profile'
 import { useAuth } from '../../lib/auth'
@@ -29,13 +31,14 @@ export function SettingsScreen() {
   const { profile } = useProfile()
   const { session } = useAuth()
   const navigate = useNavigate()
+  const t = useT()
   const isCloud = mode === 'cloud'
 
   return (
     <PageTransition>
       <div className="px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-4 space-y-5">
         <header>
-          <h1 className="text-xl font-extrabold tracking-tight">Cài đặt</h1>
+          <h1 className="text-xl font-extrabold tracking-tight">{t.settings.title}</h1>
         </header>
 
         {/* Thẻ hồ sơ — bấm vào để chỉnh */}
@@ -45,9 +48,9 @@ export function SettingsScreen() {
         >
           <Avatar name={profile.name || '?'} color="indigo" size="lg" src={profile.avatarUrl} />
           <div className="flex-1 min-w-0">
-            <p className="font-bold truncate">{profile.name || 'Chưa đặt tên'}</p>
+            <p className="font-bold truncate">{profile.name || t.settings.unnamed}</p>
             <p className="text-sm text-muted truncate">
-              {isCloud ? (session?.user.email ?? 'Tài khoản cloud') : 'Hồ sơ cục bộ'}
+              {isCloud ? (session?.user.email ?? t.settings.cloudAccount) : t.settings.localProfile}
             </p>
           </div>
           <ChevronRight size={18} className="text-faint shrink-0" />
@@ -55,42 +58,43 @@ export function SettingsScreen() {
 
         {/* Tài khoản & gói */}
         {isCloud ? (
-          <Section title="Tài khoản">
-            <NavRow icon={<Wallet size={18} />} label="Tài khoản nhận tiền" to="/settings/bank" />
+          <Section title={t.settings.sectionAccount}>
+            <NavRow icon={<Wallet size={18} />} label={t.settings.bankAccount} to="/settings/bank" />
             <PlanRow />
             <NotificationRow />
           </Section>
         ) : (
-          <Section title="Tài khoản">
+          <Section title={t.settings.sectionAccount}>
             <Card className="flex items-center gap-3 rounded-none border-0 shadow-none p-3.5">
               <span className="grid place-items-center h-9 w-9 rounded-xl gradient-brand-soft text-white shadow-soft shrink-0">
                 <LogIn size={17} />
               </span>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm">Đăng nhập</p>
-                <p className="text-xs text-muted">Google · Zalo — đồng bộ nhiều thiết bị</p>
+                <p className="font-semibold text-sm">{t.settings.signIn}</p>
+                <p className="text-xs text-muted">{t.settings.signInHint}</p>
               </div>
-              <Badge tone="muted">Chưa bật</Badge>
+              <Badge tone="muted">{t.settings.notEnabled}</Badge>
             </Card>
           </Section>
         )}
 
         {/* Ứng dụng */}
-        <Section title="Ứng dụng">
+        <Section title={t.settings.sectionApp}>
           <ThemeRow />
-          <NavRow icon={<Palette size={18} />} label="Giao diện" to="/settings/appearance" />
-          <NavRow icon={<Shield size={18} />} label="Dữ liệu & lưu trữ" to="/settings/data" />
+          <NavRow icon={<Palette size={18} />} label={t.settings.appearance} to="/settings/appearance" />
+          <NavRow icon={<Languages size={18} />} label={t.settings.language} to="/settings/language" />
+          <NavRow icon={<Shield size={18} />} label={t.settings.data} to="/settings/data" />
         </Section>
 
         {/* Hỗ trợ & pháp lý */}
-        <Section title="Hỗ trợ & pháp lý">
-          <NavRow icon={<HelpCircle size={18} />} label="Hỏi đáp" to="/faq" />
-          <NavRow icon={<Shield size={18} />} label="Điều khoản sử dụng" to="/terms" />
-          <NavRow icon={<Shield size={18} />} label="Chính sách bảo mật" to="/privacy" />
+        <Section title={t.settings.sectionSupport}>
+          <NavRow icon={<HelpCircle size={18} />} label={t.settings.faq} to="/faq" />
+          <NavRow icon={<Shield size={18} />} label={t.settings.terms} to="/terms" />
+          <NavRow icon={<Shield size={18} />} label={t.settings.privacy} to="/privacy" />
         </Section>
 
         <p className="text-center text-xs text-faint flex items-center justify-center gap-1.5 pt-1">
-          <Info size={13} /> Splitz v0.1 · Chia tiền nhóm sòng phẳng
+          <Info size={13} /> {t.settings.tagline}
         </p>
       </div>
     </PageTransition>

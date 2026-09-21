@@ -1,12 +1,16 @@
+import { getIntlLocale, getLang } from './i18n/locale'
+import { t } from './i18n'
+
 export { formatVnd } from './settlement/money'
 
-/** Rút gọn số tiền: 1.250.000 → 1,25tr; 45.000 → 45k. Dùng cho thẻ thống kê. */
+/** Rút gọn số tiền: 1.250.000 → 1,25tr (vi) / 1.25M (en); 45.000 → 45k. */
 export function formatCompactVnd(amount: number): string {
   const v = Math.round(amount)
   const abs = Math.abs(v)
   const sign = v < 0 ? '-' : ''
-  if (abs >= 1_000_000) return `${sign}${trim(abs / 1_000_000)}tr`
-  if (abs >= 1_000) return `${sign}${trim(abs / 1_000)}k`
+  const f = t().format
+  if (abs >= 1_000_000) return `${sign}${trim(abs / 1_000_000)}${f.millionSuffix}`
+  if (abs >= 1_000) return `${sign}${trim(abs / 1_000)}${f.thousandSuffix}`
   return `${sign}${abs}`
 }
 
@@ -14,13 +18,18 @@ function trim(n: number): string {
   return n
     .toFixed(2)
     .replace(/\.?0+$/, '')
-    .replace('.', ',')
+    .replace('.', t().format.decimalMark)
 }
 
 export function formatDate(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  // vi: 21/09/2026 (số, quen thuộc) — en: Sep 21, 2026 (tránh nhầm ngày/tháng).
+  const opts: Intl.DateTimeFormatOptions =
+    getLang() === 'vi'
+      ? { day: '2-digit', month: '2-digit', year: 'numeric' }
+      : { day: 'numeric', month: 'short', year: 'numeric' }
+  return d.toLocaleDateString(getIntlLocale(), opts)
 }
 
 export function formatRelative(iso: string): string {
@@ -28,9 +37,10 @@ export function formatRelative(iso: string): string {
   if (Number.isNaN(d.getTime())) return ''
   const diffMs = Date.now() - d.getTime()
   const day = 24 * 60 * 60 * 1000
-  if (diffMs < day && d.toDateString() === new Date().toDateString()) return 'Hôm nay'
-  if (diffMs < 2 * day) return 'Hôm qua'
-  if (diffMs < 7 * day) return `${Math.floor(diffMs / day)} ngày trước`
+  const f = t().format
+  if (diffMs < day && d.toDateString() === new Date().toDateString()) return f.today
+  if (diffMs < 2 * day) return f.yesterday
+  if (diffMs < 7 * day) return f.daysAgo({ count: Math.floor(diffMs / day) })
   return formatDate(iso)
 }
 

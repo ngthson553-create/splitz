@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
-import { ArrowLeft, Camera, Cloud, Crown, HardDrive, Lock, LogOut, Moon, Shield, Sun, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Camera, Cloud, Crown, HardDrive, Languages, Lock, LogOut, Moon, Shield, Sun, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../../lib/theme'
+import { LANGS, useLang, useT, type Lang } from '../../lib/i18n'
 import { useStore } from '../../lib/store'
 import { useProfile } from '../../lib/profile'
 import { useAuth } from '../../lib/auth'
@@ -306,6 +307,57 @@ function ThemeSwatch({
       </div>
       <p className="text-[11px] font-semibold mt-1.5">{label}</p>
     </button>
+  )
+}
+
+// ── Ngôn ngữ ──
+export function LanguageSettingsScreen() {
+  const { lang, setLang } = useLang()
+  const t = useT()
+
+  // Xem trước bằng chính từ điển của ngôn ngữ đó, không phải ngôn ngữ đang bật:
+  // người dùng thấy trước kết quả trước khi đổi.
+  const preview: Record<Lang, string> = {
+    vi: `1.250.000đ · ${new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+    en: `1,250,000₫ · ${new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}`,
+  }
+  const name: Record<Lang, string> = {
+    vi: t.settings.langNameVi,
+    en: t.settings.langNameEn,
+  }
+
+  return (
+    <SettingsShell title={t.settings.language}>
+      <Card className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="grid place-items-center h-10 w-10 rounded-xl gradient-brand-soft text-white shadow-soft">
+            <Languages size={18} />
+          </div>
+          <div>
+            <p className="font-bold">{name[lang]}</p>
+            <p className="text-sm text-muted">{t.settings.languageSubtitle}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {LANGS.map((code) => (
+            <button
+              key={code}
+              onClick={() => setLang(code)}
+              aria-pressed={lang === code}
+              className={`press rounded-xl p-3 border text-left transition ${
+                lang === code ? 'border-brand-400 ring-2 ring-brand-400/30' : 'border-[var(--border)]'
+              }`}
+            >
+              <p className="font-semibold text-sm">{name[code]}</p>
+              <p className="text-[11px] text-faint mt-1 tabular-nums">{preview[code]}</p>
+            </button>
+          ))}
+        </div>
+
+        <p className="text-xs text-faint">{t.settings.languageNote}</p>
+      </Card>
+    </SettingsShell>
   )
 }
 
