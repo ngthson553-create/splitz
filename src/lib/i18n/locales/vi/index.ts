@@ -1,4 +1,8 @@
 import { auth } from './auth'
+import { adminBilling } from './adminBilling'
+import { adminOps } from './adminOps'
+import { adminPages } from './adminPages'
+import { adminSystem } from './adminSystem'
 import { common } from './common'
 import { errors } from './errors'
 import { expense } from './expense'
@@ -13,6 +17,10 @@ import { settings } from './settings'
  * trong `../en/index.ts`, nếu không TypeScript báo lỗi ngay.
  */
 export const vi = {
+  adminBilling,
+  adminOps,
+  adminPages,
+  adminSystem,
   auth,
   common,
   errors,

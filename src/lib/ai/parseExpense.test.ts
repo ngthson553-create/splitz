@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { parseExpenseRuleBased, isLowConfidence } from './parseExpense'
+import { setLang } from '../i18n/locale'
+import { afterEach } from 'vitest'
+
+afterEach(() => setLang('vi'))
 
 describe('parseExpenseRuleBased', () => {
   const members = ['Sơn', 'Quân', 'Linh', 'Hải', 'Bình']
@@ -47,5 +51,52 @@ describe('parseExpenseRuleBased', () => {
     expect(isLowConfidence({ title: 'X', amount: 0, payerName: 'Sơn' })).toBe(true)
     expect(isLowConfidence({ title: 'X', amount: 1000 })).toBe(true)
     expect(isLowConfidence({ title: 'X', amount: 1000, payerName: 'Sơn' })).toBe(false)
+  })
+})
+
+describe('parseExpenseRuleBased (English keywords)', () => {
+  // Từ khoá EN được THÊM vào, không thay thế — câu tiếng Việt ở trên phải vẫn
+  // parse đúng dù app đang bật English.
+  const members = ['John', 'Mary', 'Alice']
+
+  it('parses "paid" + "split" in an English sentence', () => {
+    setLang('en')
+    const r = parseExpenseRuleBased('Dinner 500k John paid split', members)
+    expect(r.amount).toBe(500_000)
+    expect(r.payerName).toBe('John')
+    expect(r.title).toBe('Dinner')
+    expect(r.participantNames).toEqual(members)
+  })
+
+  it('parses "paid for" + specific people after "split between"', () => {
+    setLang('en')
+    const r = parseExpenseRuleBased('Taxi 350.000 Mary paid for split between John and Mary', members)
+    expect(r.amount).toBe(350_000)
+    expect(r.payerName).toBe('Mary')
+    expect(r.title).toBe('Taxi')
+    expect(r.participantNames).toEqual(['John', 'Mary'])
+  })
+
+  it('parses "2m" as millions', () => {
+    setLang('en')
+    const r = parseExpenseRuleBased('Hotel 2m Alice paid', members)
+    expect(r.amount).toBe(2_000_000)
+    expect(r.payerName).toBe('Alice')
+    expect(r.title).toBe('Hotel')
+  })
+
+  it('falls back to the English default title', () => {
+    setLang('en')
+    const r = parseExpenseRuleBased('500k John paid', members)
+    expect(r.title).toBe('Expense')
+  })
+
+  it('Vietnamese sentence still parses while app language is English', () => {
+    setLang('en')
+    const vnMembers = ['Sơn', 'Quân']
+    const r = parseExpenseRuleBased('Cà phê 45k Sơn trả', vnMembers)
+    expect(r.amount).toBe(45_000)
+    expect(r.payerName).toBe('Sơn')
+    expect(r.title).toBe('Cà phê')
   })
 })

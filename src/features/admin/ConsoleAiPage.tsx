@@ -12,6 +12,8 @@ import {
   TriangleAlert,
 } from 'lucide-react'
 import { Badge, Button, Card, EmptyState, Field, Input, Segmented } from '../../components/ui'
+import { useT, type Dict } from '../../lib/i18n'
+import { getIntlLocale } from '../../lib/i18n/locale'
 import {
   loadAdminAiSnapshot,
   resetAdminAiQuota,
@@ -31,31 +33,22 @@ import {
 
 type TestMode = 'parse' | 'ocr' | 'insight'
 
-const DATE_FORMAT = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
-const NUMBER_FORMAT = new Intl.NumberFormat('vi-VN')
-
-const FEATURE_FILTER_OPTIONS: { value: AdminAiFeatureFilter; label: string }[] = [
-  { value: 'all', label: 'Tất cả' },
-  { value: 'parse_expense', label: 'Parse' },
-  { value: 'ocr_receipt', label: 'OCR' },
-  { value: 'insight', label: 'Insight' },
-]
-
 const TEST_MODE_OPTIONS: { value: TestMode; label: string }[] = [
   { value: 'parse', label: 'Parser' },
   { value: 'ocr', label: 'OCR' },
   { value: 'insight', label: 'Insight' },
 ]
 
-const FEATURE_LABEL: Record<AdminAiFeature, string> = {
-  parse_expense: 'Nhập chi tự nhiên',
-  ocr_receipt: 'OCR hoá đơn',
-  insight: 'Insight chi tiêu',
-}
-
 const PROMPT_KEYS: AdminAiFeature[] = ['parse_expense', 'ocr_receipt', 'insight']
 
+function featureLabel(t: Dict, feature: AdminAiFeature) {
+  if (feature === 'parse_expense') return t.adminSystem.aiFeatureParse
+  if (feature === 'ocr_receipt') return t.adminSystem.aiFeatureOcr
+  return t.adminSystem.aiFeatureInsight
+}
+
 export function ConsoleAiPage() {
+  const t = useT()
   const [snapshot, setSnapshot] = useState<AdminAiSnapshot | null>(null)
   const [period, setPeriod] = useState(currentPeriod())
   const [feature, setFeature] = useState<AdminAiFeatureFilter>('all')
@@ -113,10 +106,10 @@ export function ConsoleAiPage() {
       hydrateSnapshot(next)
       setNotice(null)
     } else {
-      setNotice('Không tải được AI snapshot. Kiểm tra quyền admin hoặc Edge Function admin-ai.')
+      setNotice(t.adminSystem.aiLoadFailed)
     }
     setLoading(false)
-  }, [feature, hydrateSnapshot, period])
+  }, [feature, hydrateSnapshot, period, t])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -150,7 +143,7 @@ export function ConsoleAiPage() {
         insight: prompts.insight,
       },
     })
-    setNotice(saved ? 'Đã lưu AI config và ghi audit.' : 'Không lưu được AI config. Kiểm tra quyền owner hoặc Edge Function.')
+    setNotice(saved ? t.adminSystem.aiSavedConfig : t.adminSystem.aiSaveConfigFailed)
     if (saved) await loadSnapshot()
     setBusy(false)
   }
@@ -167,7 +160,7 @@ export function ConsoleAiPage() {
       })
     } else if (testMode === 'ocr') {
       if (!ocrBase64) {
-        setNotice('Cần chọn ảnh hoá đơn trước khi test OCR.')
+        setNotice(t.adminSystem.aiOcrImageRequired)
         setBusy(false)
         return
       }
@@ -176,13 +169,13 @@ export function ConsoleAiPage() {
       try {
         result = await testAdminAiInsight(undefined, { stats: JSON.parse(insightStats) })
       } catch {
-        setNotice('Stats insight phải là JSON hợp lệ.')
+        setNotice(t.adminSystem.aiInsightStatsInvalid)
         setBusy(false)
         return
       }
     }
     setTestResult(result)
-    setNotice(result ? 'Test AI hoàn tất, không trừ quota user.' : 'Test AI thất bại. Kiểm tra provider/model/prompt.')
+    setNotice(result ? t.adminSystem.aiTestDone : t.adminSystem.aiTestFailed)
     setBusy(false)
   }
 
@@ -190,14 +183,14 @@ export function ConsoleAiPage() {
     const targetEmail = row?.userEmail ?? resetEmail.trim()
     const targetFeature = row?.feature ?? resetFeature
     if (!targetEmail) {
-      setNotice('Cần nhập email user để reset quota.')
+      setNotice(t.adminSystem.aiResetEmailRequired)
       return
     }
-    const ok = window.confirm(`Reset quota ${FEATURE_LABEL[targetFeature]} cho ${targetEmail} trong kỳ ${period}?`)
+    const ok = window.confirm(t.adminSystem.aiResetQuotaConfirm({ feature: featureLabel(t, targetFeature), email: targetEmail, period }))
     if (!ok) return
     setBusy(true)
     const result = await resetAdminAiQuota(undefined, { userEmail: targetEmail, feature: targetFeature, period })
-    setNotice(result ? 'Đã reset quota và ghi audit.' : 'Không reset được quota. Kiểm tra email/feature/quyền owner.')
+    setNotice(result ? t.adminSystem.aiResetQuotaDone : t.adminSystem.aiResetQuotaFailed)
     if (result) await loadSnapshot()
     setBusy(false)
   }
@@ -220,21 +213,21 @@ export function ConsoleAiPage() {
               <Badge tone="brand">Phase 6</Badge>
               <AiStatusBadge status={snapshot?.summaryStatus ?? 'unknown'} />
             </div>
-            <h2 className="mt-2 text-2xl font-extrabold text-app lg:text-3xl">Điều hành AI</h2>
+            <h2 className="mt-2 text-2xl font-extrabold text-app lg:text-3xl">{t.adminSystem.aiTitle}</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
-              Điều hành AI nhập chi/OCR/insight qua Edge Function admin-only: cờ tính năng, quota, nhà cung cấp/model, prompt version và kết quả test đã lọc dữ liệu nhạy cảm.
+              {t.adminSystem.aiDescription}
             </p>
           </div>
           <Button variant="secondary" onClick={() => void loadSnapshot()} disabled={loading || busy}>
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Làm mới
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} {t.adminSystem.refresh}
           </Button>
         </div>
 
         <div className="mt-5 grid gap-2 sm:grid-cols-4">
-          <SummaryPill label="Nhà cung cấp" value={snapshot?.provider.active ?? providerActive} tone="brand" />
-          <SummaryPill label="Tính năng bật" value={`${enabledCount}/3`} tone={enabledCount === 3 ? 'pos' : 'warn'} />
-          <SummaryPill label="Lượt dùng kỳ này" value={NUMBER_FORMAT.format(usageTotal)} tone="brand" />
-          <SummaryPill label="Check gần nhất" value={snapshot ? formatDate(snapshot.checkedAt) : loading ? 'Đang tải' : 'Chưa có'} tone="pos" />
+          <SummaryPill label={t.adminSystem.aiPillProvider} value={snapshot?.provider.active ?? providerActive} tone="brand" />
+          <SummaryPill label={t.adminSystem.aiPillFeaturesOn} value={`${enabledCount}/3`} tone={enabledCount === 3 ? 'pos' : 'warn'} />
+          <SummaryPill label={t.adminSystem.aiPillUsage} value={formatNumber(usageTotal)} tone="brand" />
+          <SummaryPill label={t.adminSystem.aiPillLastCheck} value={snapshot ? formatDate(snapshot.checkedAt) : loading ? t.adminSystem.loading : t.adminSystem.noneYet} tone="pos" />
         </div>
         {notice && <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-semibold text-app">{notice}</p>}
       </Card>
@@ -247,19 +240,19 @@ export function ConsoleAiPage() {
                 <BrainCircuit size={20} />
               </span>
               <div>
-                <h3 className="font-extrabold text-app">Cấu hình chạy</h3>
-                <p className="text-xs text-muted">Nhà cung cấp/model, cờ tính năng và quota Free.</p>
+                <h3 className="font-extrabold text-app">{t.adminSystem.aiRunConfigTitle}</h3>
+                <p className="text-xs text-muted">{t.adminSystem.aiRunConfigHint}</p>
               </div>
             </div>
 
             <div className="mt-5 grid gap-3 lg:grid-cols-2">
-              <Field label="Nhà cung cấp chính">
+              <Field label={t.adminSystem.aiProviderPrimary}>
                 <select value={providerActive} onChange={(event) => setProviderActive(event.target.value as AdminAiProviderName)} className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-solid)] px-3 text-sm font-semibold text-app outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30">
                   <option value="gemini">Gemini</option>
                   <option value="deepseek">DeepSeek</option>
                 </select>
               </Field>
-              <Field label="Nhà cung cấp dự phòng">
+              <Field label={t.adminSystem.aiProviderFallback}>
                 <select value={providerFallback} onChange={(event) => setProviderFallback(event.target.value as AdminAiProviderName)} className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-solid)] px-3 text-sm font-semibold text-app outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30">
                   <option value="deepseek">DeepSeek</option>
                   <option value="gemini">Gemini</option>
@@ -276,19 +269,19 @@ export function ConsoleAiPage() {
             {snapshot?.provider.detail && <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-semibold text-muted">{snapshot.provider.detail}</p>}
 
             <div className="mt-5 grid gap-3 lg:grid-cols-3">
-              <FeatureSwitch flag={flagFor(snapshot, 'ai_parse_expense')} fallbackLabel="Nhập chi tự nhiên" enabled={flags.parseExpense} onChange={(enabled) => setFlags((current) => ({ ...current, parseExpense: enabled }))} />
-              <FeatureSwitch flag={flagFor(snapshot, 'ai_ocr_receipt')} fallbackLabel="OCR hoá đơn" enabled={flags.ocrReceipt} onChange={(enabled) => setFlags((current) => ({ ...current, ocrReceipt: enabled }))} />
-              <FeatureSwitch flag={flagFor(snapshot, 'ai_insight')} fallbackLabel="Insight chi tiêu" enabled={flags.insight} onChange={(enabled) => setFlags((current) => ({ ...current, insight: enabled }))} />
+              <FeatureSwitch flag={flagFor(snapshot, 'ai_parse_expense')} fallbackLabel={t.adminSystem.aiFeatureParse} enabled={flags.parseExpense} onChange={(enabled) => setFlags((current) => ({ ...current, parseExpense: enabled }))} />
+              <FeatureSwitch flag={flagFor(snapshot, 'ai_ocr_receipt')} fallbackLabel={t.adminSystem.aiFeatureOcr} enabled={flags.ocrReceipt} onChange={(enabled) => setFlags((current) => ({ ...current, ocrReceipt: enabled }))} />
+              <FeatureSwitch flag={flagFor(snapshot, 'ai_insight')} fallbackLabel={t.adminSystem.aiFeatureInsight} enabled={flags.insight} onChange={(enabled) => setFlags((current) => ({ ...current, insight: enabled }))} />
             </div>
 
             <div className="mt-5 grid gap-3 lg:grid-cols-3">
-              <Field label="Quota parse Free">
+              <Field label={t.adminSystem.aiQuotaParseFree}>
                 <Input type="number" min={0} value={quotas.parseFree} onChange={(event) => setQuotas((current) => ({ ...current, parseFree: toInt(event.target.value, 0, 999) }))} />
               </Field>
-              <Field label="Quota OCR Free">
+              <Field label={t.adminSystem.aiQuotaOcrFree}>
                 <Input type="number" min={0} value={quotas.ocrFree} onChange={(event) => setQuotas((current) => ({ ...current, ocrFree: toInt(event.target.value, 0, 999) }))} />
               </Field>
-              <Field label="Quota insight Free">
+              <Field label={t.adminSystem.aiQuotaInsightFree}>
                 <Input type="number" min={0} value={quotas.insightFree} onChange={(event) => setQuotas((current) => ({ ...current, insightFree: toInt(event.target.value, 0, 999) }))} />
               </Field>
             </div>
@@ -301,12 +294,12 @@ export function ConsoleAiPage() {
                   <FileText size={20} />
                 </span>
                 <div>
-                  <h3 className="font-extrabold text-app">Prompt/template</h3>
-                  <p className="text-xs text-muted">Lưu sẽ tạo version active mới cho prompt thay đổi.</p>
+                  <h3 className="font-extrabold text-app">{t.adminSystem.aiPromptTitle}</h3>
+                  <p className="text-xs text-muted">{t.adminSystem.aiPromptHint}</p>
                 </div>
               </div>
               <Button onClick={() => void onSaveConfig()} disabled={busy}>
-                {busy ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Lưu config
+                {busy ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {t.adminSystem.aiSaveConfig}
               </Button>
             </div>
 
@@ -316,7 +309,7 @@ export function ConsoleAiPage() {
                 return (
                   <label key={key} className="block space-y-2">
                     <span className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-sm font-extrabold text-app">{FEATURE_LABEL[key]}</span>
+                      <span className="text-sm font-extrabold text-app">{featureLabel(t, key)}</span>
                       {version && <Badge tone="muted">{version.title} v{version.version}</Badge>}
                     </span>
                     <textarea
@@ -338,8 +331,8 @@ export function ConsoleAiPage() {
                   <TestTube2 size={20} />
                 </span>
                 <div>
-                <h3 className="font-extrabold text-app">Khu test AI</h3>
-                  <p className="text-xs text-muted">Test parser/OCR/insight qua admin Edge Function, không trừ quota user.</p>
+                <h3 className="font-extrabold text-app">{t.adminSystem.aiTestTitle}</h3>
+                  <p className="text-xs text-muted">{t.adminSystem.aiTestHint}</p>
                 </div>
               </div>
               <Segmented options={TEST_MODE_OPTIONS} value={testMode} onChange={setTestMode} className="w-full lg:w-80" />
@@ -349,26 +342,26 @@ export function ConsoleAiPage() {
               <div className="space-y-3">
                 {testMode === 'parse' && (
                   <>
-                    <Field label="Câu nhập chi">
+                    <Field label={t.adminSystem.aiParseInputLabel}>
                       <textarea value={parseText} onChange={(event) => setParseText(event.target.value)} rows={4} className="w-full rounded-xl border border-[var(--border)] surface-sunken px-3.5 py-3 text-sm text-app outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
                     </Field>
-                    <Field label="Tên thành viên, phân tách bằng dấu phẩy">
+                    <Field label={t.adminSystem.aiMemberNamesLabel}>
                       <Input value={memberNames} onChange={(event) => setMemberNames(event.target.value)} />
                     </Field>
                   </>
                 )}
                 {testMode === 'ocr' && (
                   <>
-                    <Field label="Ảnh hoá đơn">
+                    <Field label={t.adminSystem.aiOcrImageLabel}>
                       <input type="file" accept="image/*" onChange={(event) => void onOcrFileChange(event.target.files?.[0] ?? null)} className="block w-full rounded-xl border border-[var(--border)] bg-[var(--surface-solid)] px-3 py-2 text-sm text-app" />
                     </Field>
                     <p className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-semibold text-muted">
-                      {ocrFileName ? `${ocrFileName} · ${ocrMime}` : 'Chưa chọn ảnh test OCR.'}
+                      {ocrFileName ? `${ocrFileName} · ${ocrMime}` : t.adminSystem.aiOcrImageEmpty}
                     </p>
                   </>
                 )}
                 {testMode === 'insight' && (
-                  <Field label="Dữ liệu insight JSON">
+                  <Field label={t.adminSystem.aiInsightStatsLabel}>
                     <textarea value={insightStats} onChange={(event) => setInsightStats(event.target.value)} rows={7} className="w-full rounded-xl border border-[var(--border)] surface-sunken px-3.5 py-3 text-sm text-app outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
                   </Field>
                 )}
@@ -377,7 +370,7 @@ export function ConsoleAiPage() {
                 </Button>
               </div>
               <pre className="min-h-56 overflow-auto rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3 text-xs leading-5 text-muted">
-                {testResult ? formatJson(testResult) : 'Kết quả test AI sẽ hiển thị ở đây.'}
+                {testResult ? formatJson(testResult) : t.adminSystem.aiTestResultEmpty}
               </pre>
             </div>
           </Card>
@@ -390,16 +383,21 @@ export function ConsoleAiPage() {
                 <Gauge size={18} />
               </span>
               <div>
-                <h3 className="font-extrabold text-app">Lượt dùng</h3>
-                <p className="text-xs text-muted">Lọc theo tháng, user và feature.</p>
+                <h3 className="font-extrabold text-app">{t.adminSystem.aiUsageTitle}</h3>
+                <p className="text-xs text-muted">{t.adminSystem.aiUsageHint}</p>
               </div>
             </div>
             <div className="mt-4 grid gap-3">
-              <Field label="Kỳ sử dụng">
+              <Field label={t.adminSystem.aiUsagePeriod}>
                 <Input value={period} onChange={(event) => setPeriod(event.target.value)} placeholder="2026-06" />
               </Field>
-              <Field label="Tính năng">
-                <Segmented options={FEATURE_FILTER_OPTIONS} value={feature} onChange={setFeature} />
+              <Field label={t.adminSystem.aiUsageFeature}>
+                <Segmented options={[
+                  { value: 'all', label: t.adminSystem.all },
+                  { value: 'parse_expense', label: 'Parse' },
+                  { value: 'ocr_receipt', label: 'OCR' },
+                  { value: 'insight', label: 'Insight' },
+                ]} value={feature} onChange={setFeature} />
               </Field>
             </div>
             <div className="mt-4 space-y-2">
@@ -407,12 +405,12 @@ export function ConsoleAiPage() {
                 <div key={item.feature} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-extrabold text-app">{item.label}</p>
-                    <Badge tone="brand">{NUMBER_FORMAT.format(item.totalCount)}</Badge>
+                    <Badge tone="brand">{formatNumber(item.totalCount)}</Badge>
                   </div>
-                  <p className="mt-1 text-xs text-muted">{item.userCount} user · {item.period}</p>
+                  <p className="mt-1 text-xs text-muted">{t.adminSystem.aiUsageMeta({ users: item.userCount, period: item.period })}</p>
                 </div>
               ))}
-              {!loading && (snapshot?.usageSummary.length ?? 0) === 0 && <EmptyState icon={<Gauge size={28} />} title="Chưa có usage" description="AI usage của kỳ này sẽ xuất hiện ở đây." />}
+              {!loading && (snapshot?.usageSummary.length ?? 0) === 0 && <EmptyState icon={<Gauge size={28} />} title={t.adminSystem.aiUsageEmptyTitle} description={t.adminSystem.aiUsageEmptyDescription} />}
             </div>
           </Card>
 
@@ -422,18 +420,18 @@ export function ConsoleAiPage() {
                 <RotateCcw size={18} />
               </span>
               <div>
-                <h3 className="font-extrabold text-app">Reset quota</h3>
-                <p className="text-xs text-muted">MVP chỉ reset từng user/tính năng/kỳ, có xác nhận và audit.</p>
+                <h3 className="font-extrabold text-app">{t.adminSystem.aiResetTitle}</h3>
+                <p className="text-xs text-muted">{t.adminSystem.aiResetHint}</p>
               </div>
             </div>
             <div className="mt-4 grid gap-3">
-              <Field label="Email user">
+              <Field label={t.adminSystem.aiResetEmailLabel}>
                 <Input value={resetEmail} onChange={(event) => setResetEmail(event.target.value)} placeholder="user@example.com" />
               </Field>
-              <Field label="Tính năng cần reset">
+              <Field label={t.adminSystem.aiResetFeatureLabel}>
                 <select value={resetFeature} onChange={(event) => setResetFeature(event.target.value as AdminAiFeature)} className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-solid)] px-3 text-sm font-semibold text-app outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30">
-                  <option value="parse_expense">Nhập chi tự nhiên</option>
-                  <option value="ocr_receipt">OCR hoá đơn</option>
+                  <option value="parse_expense">{t.adminSystem.aiFeatureParse}</option>
+                  <option value="ocr_receipt">{t.adminSystem.aiFeatureOcr}</option>
                   <option value="insight">Insight</option>
                 </select>
               </Field>
@@ -449,7 +447,7 @@ export function ConsoleAiPage() {
                 {[0, 1, 2].map((item) => <div key={item} className="h-16 animate-pulse rounded-2xl bg-[var(--surface-2)]" />)}
               </div>
             ) : (snapshot?.usageRows.length ?? 0) === 0 ? (
-              <EmptyState icon={<BrainCircuit size={28} />} title="Chưa có user usage" description="Chọn kỳ khác nếu cần rà usage cũ." />
+              <EmptyState icon={<BrainCircuit size={28} />} title={t.adminSystem.aiUserUsageEmptyTitle} description={t.adminSystem.aiUserUsageEmptyDescription} />
             ) : (
               <div className="divide-y divide-[var(--border)]">
                 {snapshot?.usageRows.map((row) => (
@@ -457,12 +455,12 @@ export function ConsoleAiPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-extrabold text-app">{row.userEmail ?? row.displayName ?? row.userId}</p>
-                        <p className="text-xs text-muted">{FEATURE_LABEL[row.feature]} · {row.period}</p>
+                        <p className="text-xs text-muted">{featureLabel(t, row.feature)} · {row.period}</p>
                       </div>
                       <Badge tone="brand">{row.count}</Badge>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => void onResetQuota(row)} disabled={busy}>
-                      <RotateCcw size={14} /> Reset dòng này
+                      <RotateCcw size={14} /> {t.adminSystem.aiResetRow}
                     </Button>
                   </div>
                 ))}
@@ -477,8 +475,8 @@ export function ConsoleAiPage() {
                   <TriangleAlert size={18} />
                 </span>
                 <div>
-                  <h3 className="font-extrabold text-app">Lỗi AI gần đây</h3>
-                  <p className="text-xs text-muted">Từ audit admin AI, đã sanitize.</p>
+                  <h3 className="font-extrabold text-app">{t.adminSystem.aiErrorsTitle}</h3>
+                  <p className="text-xs text-muted">{t.adminSystem.aiErrorsHint}</p>
                 </div>
               </div>
               <div className="mt-4 space-y-2">
@@ -508,19 +506,20 @@ function FeatureSwitch({
   enabled: boolean
   onChange: (enabled: boolean) => void
 }) {
+  const t = useT()
   return (
     <label className="flex min-h-28 cursor-pointer flex-col justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
       <span className="flex items-start justify-between gap-3">
         <span className="min-w-0">
           <span className="block text-sm font-extrabold text-app">{flag?.label ?? fallbackLabel}</span>
-          <span className="mt-1 block text-xs leading-5 text-muted">{flag?.description ?? 'Cờ tính năng AI'}</span>
+          <span className="mt-1 block text-xs leading-5 text-muted">{flag?.description ?? t.adminSystem.aiFlagFallbackDescription}</span>
         </span>
         <span className={`relative h-6 w-11 shrink-0 rounded-full transition ${enabled ? 'bg-brand-500' : 'bg-[var(--surface-3)]'}`}>
           <input type="checkbox" className="sr-only" checked={enabled} onChange={(event) => onChange(event.target.checked)} />
           <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-soft transition ${enabled ? 'left-6' : 'left-1'}`} />
         </span>
       </span>
-      <span className="mt-3 text-xs font-bold uppercase text-faint">{enabled ? 'Đang bật' : 'Đã tắt'}</span>
+      <span className="mt-3 text-xs font-bold uppercase text-faint">{enabled ? t.adminSystem.on : t.adminSystem.off}</span>
     </label>
   )
 }
@@ -536,8 +535,9 @@ function SummaryPill({ label, value, tone }: { label: string; value: string; ton
 }
 
 function AiStatusBadge({ status }: { status: AdminAiStatus }) {
+  const t = useT()
   const tone = status === 'ok' || status === 'configured' ? 'pos' : status === 'unknown' ? 'muted' : 'neg'
-  return <Badge tone={tone}>{status === 'configured' || status === 'ok' ? 'Đã cấu hình' : status === 'missing' ? 'Thiếu cấu hình' : status === 'failed' ? 'Lỗi' : 'Chưa rõ'}</Badge>
+  return <Badge tone={tone}>{status === 'configured' || status === 'ok' ? t.adminSystem.statusConfigured : status === 'missing' ? t.adminSystem.statusMissing : status === 'failed' ? t.adminSystem.statusFailed : t.adminSystem.statusUnknown}</Badge>
 }
 
 function currentPeriod() {
@@ -569,7 +569,11 @@ function toInt(value: string, min: number, max: number) {
 
 function formatDate(value: string) {
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : DATE_FORMAT.format(date)
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(getIntlLocale(), { dateStyle: 'short', timeStyle: 'short' }).format(date)
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat(getIntlLocale()).format(value)
 }
 
 function formatJson(value: unknown) {

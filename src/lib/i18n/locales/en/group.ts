@@ -6,6 +6,7 @@ export const group: typeof vi.group = {
   settleTab: 'Settle up',
   totalSpent: 'Total spent',
   expenseNoun: 'Expenses',
+  defaultExpenseTitle: 'Expense',
   members: 'Members',
   groupSpace: 'Group space',
   settingsShort: 'Settings',

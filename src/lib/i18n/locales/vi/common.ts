@@ -5,6 +5,7 @@
  * chữ tiếng Việt. Cần suy ra `string` để `en: typeof vi` chỉ soát key + chữ ký.
  */
 export const common = {
+  appTitle: 'Splitz — Chia tiền nhóm sòng phẳng',
   save: 'Lưu',
   cancel: 'Huỷ',
   close: 'Đóng',

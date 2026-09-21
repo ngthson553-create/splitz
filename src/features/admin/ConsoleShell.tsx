@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { ArrowLeft, Home, LayoutDashboard, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import { Badge } from '../../components/ui'
+import { useT } from '../../lib/i18n'
 import { useConsoleAccess } from './ConsoleAccessContext'
 import { consoleModuleGroups, consoleModules, pathForConsoleModule, type ConsoleModule } from './consoleModules'
 
@@ -17,6 +18,7 @@ const BASIC_MODULE_IDS = new Set(['health', 'jobs', 'data-quality', 'audit'])
 
 export function ConsoleShell() {
   const access = useConsoleAccess()
+  const t = useT()
   const location = useLocation()
   const [advancedNavOpen, setAdvancedNavOpen] = useState(false)
   const current = consoleModules.find((module) => location.pathname === pathForConsoleModule(module))
@@ -37,7 +39,7 @@ export function ConsoleShell() {
               <div className="flex items-center gap-3">
                 <Link
                   to="/"
-                  aria-label="Về Splitz"
+                  aria-label={t.adminPages.shell.backToApp}
                   className="press grid h-10 w-10 shrink-0 place-items-center rounded-2xl surface-sunken text-brand-600 dark:text-brand-300"
                 >
                   <ArrowLeft size={18} />
@@ -79,7 +81,7 @@ export function ConsoleShell() {
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl surface-sunken text-brand-600 dark:text-brand-300">
                   <Home size={16} />
                 </span>
-                <span className="min-w-0 flex-1 truncate">Hôm nay</span>
+                <span className="min-w-0 flex-1 truncate">{t.adminPages.shell.today}</span>
               </NavLink>
 
               <button
@@ -91,13 +93,13 @@ export function ConsoleShell() {
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl surface-sunken text-brand-600 dark:text-brand-300">
                   <SlidersHorizontal size={16} />
                 </span>
-                <span className="min-w-0 flex-1 truncate">{advancedNavOpen ? 'Ẩn menu nâng cao' : 'Mở menu nâng cao'}</span>
+                <span className="min-w-0 flex-1 truncate">{advancedNavOpen ? t.adminPages.shell.hideAdvancedMenu : t.adminPages.shell.showAdvancedMenu}</span>
               </button>
 
               {advancedNavOpen ? (
                 consoleModuleGroups.map((group) => (
                   <div key={group} className="space-y-1.5">
-                    <p className="px-2 text-[11px] font-bold uppercase tracking-wider text-faint">{group}</p>
+                    <p className="px-2 text-[11px] font-bold uppercase tracking-wider text-faint">{t.adminPages.group[group]}</p>
                     {consoleModules
                       .filter((module) => module.group === group)
                       .map((module) => (
@@ -107,7 +109,7 @@ export function ConsoleShell() {
                 ))
               ) : (
                 <div className="space-y-1.5">
-                  <p className="px-2 text-[11px] font-bold uppercase tracking-wider text-faint">Việc cần xem</p>
+                  <p className="px-2 text-[11px] font-bold uppercase tracking-wider text-faint">{t.adminPages.shell.toReview}</p>
                   {navModules.map((module) => <ConsoleNavItem key={module.id} module={module} />)}
                 </div>
               )}
@@ -121,13 +123,13 @@ export function ConsoleShell() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone="brand">Admin only</Badge>
                   <Badge tone="muted">Phase 21</Badge>
-                  {current && <Badge tone="muted">{current.group}</Badge>}
+                  {current && <Badge tone="muted">{t.adminPages.group[current.group]}</Badge>}
                 </div>
                 <h2 className="mt-2 truncate text-xl font-extrabold tracking-tight lg:text-2xl">
-                  {current?.label ?? 'Hôm nay'}
+                  {current?.label ?? t.adminPages.shell.today}
                 </h2>
                 <p className="mt-1 max-w-3xl text-sm leading-6 text-muted">
-                  {current?.summary ?? 'Màn no-code cho việc cần xử lý, thao tác nhanh và đường vào phần nâng cao.'}
+                  {current?.summary ?? t.adminPages.shell.homeSummary}
                 </p>
               </div>
               <div className="no-scrollbar flex gap-2 overflow-x-auto xl:justify-end">
@@ -160,6 +162,7 @@ export function ConsoleShell() {
 }
 
 function MobileModuleRail({ modules, advancedOpen, onAdvancedToggle }: { modules: ConsoleModule[]; advancedOpen: boolean; onAdvancedToggle: () => void }) {
+  const t = useT()
   return (
     <nav className="border-t border-[var(--border)] px-4 pb-4 lg:hidden" aria-label="Mobile console modules">
       <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pt-4">
@@ -176,7 +179,7 @@ function MobileModuleRail({ modules, advancedOpen, onAdvancedToggle }: { modules
           }
         >
           <Home size={15} />
-          <span>Hôm nay</span>
+          <span>{t.adminPages.shell.today}</span>
         </NavLink>
         <button
           type="button"
@@ -185,7 +188,7 @@ function MobileModuleRail({ modules, advancedOpen, onAdvancedToggle }: { modules
           className="press inline-flex min-w-fit shrink-0 items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-solid)] px-3 py-2 text-xs font-extrabold text-muted transition hover:text-app"
         >
           <SlidersHorizontal size={15} />
-          <span>{advancedOpen ? 'Ẩn menu nâng cao' : 'Mở menu nâng cao'}</span>
+          <span>{advancedOpen ? t.adminPages.shell.hideAdvancedMenu : t.adminPages.shell.showAdvancedMenu}</span>
         </button>
         {modules.map((module) => (
           <NavLink

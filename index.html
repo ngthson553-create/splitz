@@ -2,6 +2,19 @@
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
+    <!-- Đặt lang đúng trước khi React mount (trình đọc màn hình không đọc nhầm
+         ngôn ngữ). Logic mirror src/lib/i18n/locale.ts detectLang(). -->
+    <script>
+      try {
+        var s = localStorage.getItem('splitz.lang')
+        document.documentElement.lang =
+          s === 'en' || s === 'vi'
+            ? s
+            : navigator.language && navigator.language.toLowerCase().indexOf('vi') === 0
+              ? 'vi'
+              : 'en'
+      } catch (e) {}
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#356bff" />

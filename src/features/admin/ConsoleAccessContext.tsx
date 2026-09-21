@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import { t } from '../../lib/i18n'
 import type { AdminRole } from '../../lib/admin'
 
 export type ConsoleAccess = {
@@ -11,6 +12,6 @@ export const ConsoleAccessContext = createContext<ConsoleAccess | null>(null)
 
 export function useConsoleAccess(): ConsoleAccess {
   const ctx = useContext(ConsoleAccessContext)
-  if (!ctx) throw new Error('useConsoleAccess phải nằm trong ConsoleAccessProvider.')
+  if (!ctx) throw new Error(t().adminPages.contextMissingProvider)
   return ctx
 }

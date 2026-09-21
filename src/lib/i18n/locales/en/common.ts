@@ -1,6 +1,7 @@
 import type { common as vi } from '../vi/common'
 
 export const common: typeof vi = {
+  appTitle: 'Splitz — Fair group expense splitting',
   save: 'Save',
   cancel: 'Cancel',
   close: 'Close',

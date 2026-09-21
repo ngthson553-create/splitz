@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FileText, Inbox, Loader2, Mail, RefreshCw, Send, ShieldCheck, TriangleAlert } from 'lucide-react'
 import { Badge, Button, Card, EmptyState, Field, Input } from '../../components/ui'
+import { useT, type Dict } from '../../lib/i18n'
+import { getIntlLocale } from '../../lib/i18n/locale'
 import {
   loadAdminEmailSnapshot,
   sendAdminTestEmail,
@@ -13,18 +15,23 @@ import {
   type AdminEmailTemplateCategory,
 } from '../../lib/adminEmail'
 
-const DATE_FORMAT = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
-const NUMBER_FORMAT = new Intl.NumberFormat('vi-VN')
+function categoryLabel(t: Dict, category: AdminEmailTemplateCategory) {
+  if (category === 'auth') return 'Auth'
+  if (category === 'reminder') return 'Reminder'
+  if (category === 'release') return 'Release'
+  return t.adminSystem.emailCategorySystem
+}
 
 export function ConsoleEmailPage() {
+  const t = useT()
   const [snapshot, setSnapshot] = useState<AdminEmailSnapshot | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [toEmail, setToEmail] = useState('')
   const [selectedTemplateKey, setSelectedTemplateKey] = useState('system_test')
-  const [subject, setSubject] = useState('Test Splitz Email')
-  const [message, setMessage] = useState('Đây là email test từ Splitz Console để kiểm tra Resend production.')
+  const [subject, setSubject] = useState(t.adminSystem.emailDefaultSubject)
+  const [message, setMessage] = useState(t.adminSystem.emailDefaultMessage)
 
   const loadSnapshot = useCallback(async () => {
     setLoading(true)
@@ -35,10 +42,10 @@ export function ConsoleEmailPage() {
       setToEmail((current) => current || next.defaultToEmail || '')
       setSelectedTemplateKey((current) => next.templates.some((item) => item.key === current) ? current : next.templates[0]?.key ?? 'system_test')
     } else {
-      setNotice('Không tải được Email snapshot. Kiểm tra quyền admin hoặc Edge Function admin-email.')
+      setNotice(t.adminSystem.emailLoadFailed)
     }
     setLoading(false)
-  }, [])
+  }, [t])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -64,11 +71,11 @@ export function ConsoleEmailPage() {
     const cleanEmail = toEmail.trim()
     const cleanSubject = subject.trim()
     if (!cleanEmail || !cleanEmail.includes('@')) {
-      setNotice('Cần nhập email nhận test hợp lệ.')
+      setNotice(t.adminSystem.emailValidToRequired)
       return
     }
     if (!cleanSubject) {
-      setNotice('Cần nhập subject test email.')
+      setNotice(t.adminSystem.emailSubjectRequired)
       return
     }
     setBusy(true)
@@ -79,7 +86,7 @@ export function ConsoleEmailPage() {
       subject: cleanSubject,
       message,
     })
-    setNotice(result?.status === 'sent' ? 'Đã gửi test email và ghi audit.' : 'Không gửi được test email. Kiểm tra Resend config/log lỗi.')
+    setNotice(result?.status === 'sent' ? t.adminSystem.emailSent : t.adminSystem.emailSendFailed)
     if (result) await loadSnapshot()
     setBusy(false)
   }
@@ -93,21 +100,21 @@ export function ConsoleEmailPage() {
               <Badge tone="brand">Phase 7</Badge>
               <EmailStatusBadge status={snapshot?.summaryStatus ?? 'unknown'} />
             </div>
-            <h2 className="mt-2 text-2xl font-extrabold text-app lg:text-3xl">Email / Resend</h2>
+            <h2 className="mt-2 text-2xl font-extrabold text-app lg:text-3xl">{t.adminSystem.emailTitle}</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
-              Kiểm tra Resend, gửi test email, xem template vận hành và log gửi đã sanitize qua Edge Function admin-only.
+              {t.adminSystem.emailDescription}
             </p>
           </div>
           <Button variant="secondary" onClick={() => void loadSnapshot()} disabled={loading || busy}>
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Làm mới
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} {t.adminSystem.refresh}
           </Button>
         </div>
 
         <div className="mt-5 grid gap-2 sm:grid-cols-4">
           <SummaryPill label="Resend" value={snapshot?.provider.status ?? 'unknown'} tone={snapshot?.provider.status === 'configured' ? 'pos' : 'warn'} />
-          <SummaryPill label="Log gần đây" value={String(snapshot?.logs.length ?? 0)} tone="brand" />
-          <SummaryPill label="Đã gửi" value={NUMBER_FORMAT.format(sentCount)} tone="pos" />
-          <SummaryPill label="Lỗi" value={NUMBER_FORMAT.format(failedCount)} tone={failedCount > 0 ? 'warn' : 'pos'} />
+          <SummaryPill label={t.adminSystem.emailPillRecentLogs} value={String(snapshot?.logs.length ?? 0)} tone="brand" />
+          <SummaryPill label={t.adminSystem.emailPillSent} value={formatNumber(sentCount)} tone="pos" />
+          <SummaryPill label={t.adminSystem.statusFailed} value={formatNumber(failedCount)} tone={failedCount > 0 ? 'warn' : 'pos'} />
         </div>
         {notice && <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-semibold text-app">{notice}</p>}
       </Card>
@@ -121,13 +128,13 @@ export function ConsoleEmailPage() {
               <Send size={20} />
             </span>
             <div>
-              <h3 className="font-extrabold text-app">Gửi test email</h3>
-              <p className="text-xs text-muted">Chỉ gửi tới email chỉ định, action được audit.</p>
+              <h3 className="font-extrabold text-app">{t.adminSystem.emailSendTitle}</h3>
+              <p className="text-xs text-muted">{t.adminSystem.emailSendHint}</p>
             </div>
           </div>
 
           <div className="mt-5 grid gap-3 lg:grid-cols-2">
-            <Field label="Email nhận test">
+            <Field label={t.adminSystem.emailToLabel}>
               <Input value={toEmail} onChange={(event) => setToEmail(event.target.value)} placeholder="owner@example.com" />
             </Field>
             <Field label="Template">
@@ -141,14 +148,14 @@ export function ConsoleEmailPage() {
                 ))}
               </select>
             </Field>
-            <Field label="Tiêu đề email">
+            <Field label={t.adminSystem.emailSubjectLabel}>
               <Input value={subject} onChange={(event) => setSubject(event.target.value)} />
             </Field>
-            <Field label="Người gửi">
-              <Input value={snapshot?.provider.from ?? 'Chưa cấu hình'} readOnly />
+            <Field label={t.adminSystem.emailFromLabel}>
+              <Input value={snapshot?.provider.from ?? t.adminSystem.emailNotConfigured} readOnly />
             </Field>
             <label className="block space-y-1.5 lg:col-span-2">
-              <span className="text-[13px] font-semibold text-muted">Nội dung test</span>
+              <span className="text-[13px] font-semibold text-muted">{t.adminSystem.emailMessageLabel}</span>
               <textarea
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
@@ -159,7 +166,7 @@ export function ConsoleEmailPage() {
           </div>
 
           <Button className="mt-4" onClick={() => void onSendTest()} disabled={busy || loading}>
-            {busy ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />} Gửi test email
+            {busy ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />} {t.adminSystem.emailSendButton}
           </Button>
         </Card>
 
@@ -169,15 +176,15 @@ export function ConsoleEmailPage() {
               <ShieldCheck size={20} />
             </span>
             <div>
-              <h3 className="font-extrabold text-app">Sức khỏe Resend</h3>
-              <p className="text-xs text-muted">Không hiển thị API key hoặc secret.</p>
+              <h3 className="font-extrabold text-app">{t.adminSystem.emailHealthTitle}</h3>
+              <p className="text-xs text-muted">{t.adminSystem.emailHealthHint}</p>
             </div>
           </div>
           <div className="mt-5 space-y-2">
-            <MetaRow label="Trạng thái" value={snapshot?.provider.detail ?? 'Đang tải'} />
-            <MetaRow label="Người gửi" value={snapshot?.provider.from ?? 'chưa cấu hình'} />
-            <MetaRow label="Reply-To" value={snapshot?.provider.replyTo ?? 'Không cấu hình'} />
-            <MetaRow label="Email mặc định" value={snapshot?.defaultToEmail ?? 'Không có'} />
+            <MetaRow label={t.adminSystem.emailStatusLabel} value={snapshot?.provider.detail ?? t.adminSystem.loading} />
+            <MetaRow label={t.adminSystem.emailFromLabel} value={snapshot?.provider.from ?? t.adminSystem.emailNotConfiguredLower} />
+            <MetaRow label="Reply-To" value={snapshot?.provider.replyTo ?? t.adminSystem.emailNotSet} />
+            <MetaRow label={t.adminSystem.emailDefaultToLabel} value={snapshot?.defaultToEmail ?? t.adminSystem.none} />
           </div>
         </Card>
       </div>
@@ -211,7 +218,7 @@ function MetricGrid({ metrics, loading }: { metrics: AdminEmailMetric[]; loading
       {metrics.map((metric) => (
         <Card key={metric.id} className="p-4">
           <p className="text-xs font-bold uppercase text-faint">{metric.label}</p>
-          <p className="mt-2 text-2xl font-extrabold text-app">{NUMBER_FORMAT.format(metric.value)}</p>
+          <p className="mt-2 text-2xl font-extrabold text-app">{formatNumber(metric.value)}</p>
           {metric.detail && <p className="mt-1 truncate text-xs font-semibold text-muted">{metric.detail}</p>}
         </Card>
       ))}
@@ -230,6 +237,7 @@ function TemplatePanel({
   onSelect: (key: string) => void
   loading: boolean
 }) {
+  const t = useT()
   return (
     <Card className="overflow-hidden p-0">
       <div className="border-b border-[var(--border)] p-4">
@@ -238,8 +246,8 @@ function TemplatePanel({
             <FileText size={18} />
           </span>
           <div>
-            <h3 className="font-extrabold text-app">Template email</h3>
-            <p className="text-sm text-muted">Reminder, release và system email.</p>
+            <h3 className="font-extrabold text-app">{t.adminSystem.emailTemplatesTitle}</h3>
+            <p className="text-sm text-muted">{t.adminSystem.emailTemplatesHint}</p>
           </div>
         </div>
       </div>
@@ -248,7 +256,7 @@ function TemplatePanel({
           {[0, 1, 2].map((item) => <div key={item} className="h-16 animate-pulse rounded-2xl bg-[var(--surface-2)]" />)}
         </div>
       ) : templates.length === 0 ? (
-        <EmptyState icon={<FileText size={28} />} title="Chưa có template" description="Email template sẽ xuất hiện sau migration Phase 7." />
+        <EmptyState icon={<FileText size={28} />} title={t.adminSystem.emailTemplatesEmptyTitle} description={t.adminSystem.emailTemplatesEmptyDescription} />
       ) : (
         <div className="divide-y divide-[var(--border)]">
           {templates.map((template) => (
@@ -263,7 +271,7 @@ function TemplatePanel({
                 <span className="block truncate text-sm font-extrabold text-app">{template.name}</span>
                 <span className="mt-0.5 block truncate text-xs text-muted">{template.key}</span>
               </span>
-              <span><Badge tone="muted">{categoryLabel(template.category)}</Badge></span>
+              <span><Badge tone="muted">{categoryLabel(t, template.category)}</Badge></span>
               <span className="min-w-0 text-sm font-semibold text-muted truncate">{template.subject}</span>
             </button>
           ))}
@@ -274,6 +282,7 @@ function TemplatePanel({
 }
 
 function EmailLogTable({ logs, loading }: { logs: AdminEmailLog[]; loading: boolean }) {
+  const t = useT()
   return (
     <Card className="overflow-hidden p-0">
       <div className="border-b border-[var(--border)] p-4">
@@ -282,8 +291,8 @@ function EmailLogTable({ logs, loading }: { logs: AdminEmailLog[]; loading: bool
             <Inbox size={18} />
           </span>
           <div>
-            <h3 className="font-extrabold text-app">Log gửi email</h3>
-            <p className="text-sm text-muted">Log gửi email gần nhất, đã redact secret.</p>
+            <h3 className="font-extrabold text-app">{t.adminSystem.emailLogTitle}</h3>
+            <p className="text-sm text-muted">{t.adminSystem.emailLogHint}</p>
           </div>
         </div>
       </div>
@@ -292,7 +301,7 @@ function EmailLogTable({ logs, loading }: { logs: AdminEmailLog[]; loading: bool
           {[0, 1, 2].map((item) => <div key={item} className="h-16 animate-pulse rounded-2xl bg-[var(--surface-2)]" />)}
         </div>
       ) : logs.length === 0 ? (
-        <EmptyState icon={<Mail size={28} />} title="Chưa có email log" description="Test email và reminder email mới sẽ được ghi tại đây." />
+        <EmptyState icon={<Mail size={28} />} title={t.adminSystem.emailLogEmptyTitle} description={t.adminSystem.emailLogEmptyDescription} />
       ) : (
         <div className="divide-y divide-[var(--border)]">
           {logs.map((log) => (
@@ -313,20 +322,21 @@ function EmailLogTable({ logs, loading }: { logs: AdminEmailLog[]; loading: bool
 }
 
 function TemplateDetail({ template }: { template: AdminEmailTemplate | null }) {
+  const t = useT()
   return (
     <Card className="p-5 xl:sticky xl:top-6">
       {template ? (
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-faint">Chi tiết template</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-faint">{t.adminSystem.emailDetailLabel}</p>
               <h3 className="mt-1 truncate text-lg font-extrabold text-app">{template.name}</h3>
             </div>
-            <Badge tone={template.active ? 'pos' : 'muted'}>{template.active ? 'Đang bật' : 'Đã tắt'}</Badge>
+            <Badge tone={template.active ? 'pos' : 'muted'}>{template.active ? t.adminSystem.on : t.adminSystem.off}</Badge>
           </div>
-          <MetaRow label="Category" value={categoryLabel(template.category)} />
-          <MetaRow label="Tiêu đề" value={template.subject} />
-          <MetaRow label="Updated" value={template.updatedAt ? formatDate(template.updatedAt) : 'Chưa có'} />
+          <MetaRow label="Category" value={categoryLabel(t, template.category)} />
+          <MetaRow label={t.adminSystem.emailFieldSubject} value={template.subject} />
+          <MetaRow label="Updated" value={template.updatedAt ? formatDate(template.updatedAt) : t.adminSystem.noneYet} />
           <p className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm leading-6 text-muted">{template.description}</p>
         </div>
       ) : (
@@ -334,8 +344,8 @@ function TemplateDetail({ template }: { template: AdminEmailTemplate | null }) {
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl surface-sunken text-brand-600 dark:text-brand-300">
             <FileText size={20} />
           </div>
-          <p className="mt-3 font-bold text-app">Chưa chọn template</p>
-          <p className="mt-1 text-sm leading-6 text-muted">Chọn template để xem subject và mô tả.</p>
+          <p className="mt-3 font-bold text-app">{t.adminSystem.emailDetailEmptyTitle}</p>
+          <p className="mt-1 text-sm leading-6 text-muted">{t.adminSystem.emailDetailEmptyDescription}</p>
         </div>
       )}
     </Card>
@@ -343,6 +353,7 @@ function TemplateDetail({ template }: { template: AdminEmailTemplate | null }) {
 }
 
 function RecentErrors({ errors, loading }: { errors: { id: string; action: string | null; message: string | null; createdAt: string }[]; loading: boolean }) {
+  const t = useT()
   return (
     <Card className="p-5">
       <div className="flex items-center gap-3">
@@ -350,8 +361,8 @@ function RecentErrors({ errors, loading }: { errors: { id: string; action: strin
           <TriangleAlert size={18} />
         </span>
         <div>
-          <h3 className="font-extrabold text-app">Lỗi gần đây</h3>
-          <p className="text-xs text-muted">Từ email_delivery_logs và audit.</p>
+          <h3 className="font-extrabold text-app">{t.adminSystem.emailErrorsTitle}</h3>
+          <p className="text-xs text-muted">{t.adminSystem.emailErrorsHint}</p>
         </div>
       </div>
       {loading ? (
@@ -359,7 +370,7 @@ function RecentErrors({ errors, loading }: { errors: { id: string; action: strin
           {[0, 1].map((item) => <div key={item} className="h-16 animate-pulse rounded-2xl bg-[var(--surface-2)]" />)}
         </div>
       ) : errors.length === 0 ? (
-        <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm font-semibold text-muted">Chưa có lỗi email gần đây.</p>
+        <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm font-semibold text-muted">{t.adminSystem.emailErrorsEmpty}</p>
       ) : (
         <div className="mt-4 space-y-2">
           {errors.map((error) => (
@@ -395,8 +406,9 @@ function SummaryPill({ label, value, tone }: { label: string; value: string; ton
 }
 
 function EmailStatusBadge({ status }: { status: AdminEmailStatus }) {
+  const t = useT()
   const tone = status === 'ok' || status === 'configured' ? 'pos' : status === 'unknown' ? 'muted' : 'neg'
-  return <Badge tone={tone}>{status === 'configured' || status === 'ok' ? 'Đã cấu hình' : status === 'missing' ? 'Thiếu cấu hình' : status === 'failed' ? 'Lỗi' : 'Chưa rõ'}</Badge>
+  return <Badge tone={tone}>{status === 'configured' || status === 'ok' ? t.adminSystem.statusConfigured : status === 'missing' ? t.adminSystem.statusMissing : status === 'failed' ? t.adminSystem.statusFailed : t.adminSystem.statusUnknown}</Badge>
 }
 
 function EmailLogStatusBadge({ status }: { status: AdminEmailLogStatus }) {
@@ -404,14 +416,11 @@ function EmailLogStatusBadge({ status }: { status: AdminEmailLogStatus }) {
   return <Badge tone={tone}>{status}</Badge>
 }
 
-function categoryLabel(category: AdminEmailTemplateCategory) {
-  if (category === 'auth') return 'Auth'
-  if (category === 'reminder') return 'Reminder'
-  if (category === 'release') return 'Release'
-  return 'Hệ thống'
-}
-
 function formatDate(value: string) {
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : DATE_FORMAT.format(date)
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(getIntlLocale(), { dateStyle: 'short', timeStyle: 'short' }).format(date)
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat(getIntlLocale()).format(value)
 }

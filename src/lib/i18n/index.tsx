@@ -18,6 +18,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = lang
+    document.title = dictionaries[lang].common.appTitle
   }, [lang])
 
   const value: I18nContextValue = { lang, setLang: setActiveLang, t: dictionaries[lang] }

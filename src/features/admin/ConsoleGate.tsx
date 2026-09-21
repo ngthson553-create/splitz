@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Loader2, ShieldCheck } from 'lucide-react'
+import { useT } from '../../lib/i18n'
 import { getMyAdminRole } from '../../lib/admin'
 import { useAuth } from '../../lib/auth'
 import { ConsoleAccessContext, type ConsoleAccess } from './ConsoleAccessContext'
@@ -44,6 +45,7 @@ export function ConsoleAccessGate({ children }: { children: ReactNode }) {
 }
 
 function ConsoleGateLoading() {
+  const t = useT()
   return (
     <div className="relative min-h-dvh grid place-items-center px-5">
       <div className="app-aurora" />
@@ -51,8 +53,8 @@ function ConsoleGateLoading() {
         <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl gradient-brand text-white shadow-glow">
           <ShieldCheck size={22} />
         </div>
-        <p className="font-bold text-app">Đang mở Splitz</p>
-        <p className="mt-1 text-sm text-muted">Vui lòng chờ trong giây lát.</p>
+        <p className="font-bold text-app">{t.adminPages.gate.openingTitle}</p>
+        <p className="mt-1 text-sm text-muted">{t.adminPages.gate.openingDescription}</p>
         <Loader2 size={22} className="mx-auto mt-4 animate-spin text-brand-500" />
       </div>
     </div>

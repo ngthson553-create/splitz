@@ -11,6 +11,7 @@ export const group = {
   settleTab: 'Quyết toán',
   totalSpent: 'Tổng chi',
   expenseNoun: 'Khoản chi',
+  defaultExpenseTitle: 'Khoản chi',
   members: 'Thành viên',
   groupSpace: 'Không gian nhóm',
   settingsShort: 'Cài đặt',
