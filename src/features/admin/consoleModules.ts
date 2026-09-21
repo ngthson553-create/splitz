@@ -14,8 +14,11 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react'
+import { t } from '../../lib/i18n'
 
-export type ConsoleModuleGroup = 'Vận hành' | 'Tăng trưởng' | 'Cấu hình' | 'Kiểm soát'
+// Giá trị group là id nội bộ, không hiển thị trực tiếp — nhãn nằm ở dict
+// adminPages.group để đổi ngôn ngữ không phải đụng logic.
+export type ConsoleModuleGroup = 'operations' | 'growth' | 'configuration' | 'control'
 
 export type ConsoleModule = {
   id: string
@@ -27,127 +30,206 @@ export type ConsoleModule = {
   bullets: string[]
 }
 
+// label/summary/bullets đọc qua getter để mỗi lần render lấy đúng ngôn ngữ hiện hành.
 export const consoleModules: ConsoleModule[] = [
   {
     id: 'health',
     slug: 'health',
-    label: 'Dashboard vận hành',
-    group: 'Vận hành',
-    summary: 'Supabase, Edge Functions, Resend, AI, PayOS, tác vụ gần nhất và lỗi gần đây.',
+    group: 'operations',
     icon: Activity,
-    bullets: ['Thẻ sức khỏe', 'Kiểm tra nhà cung cấp', 'Tác vụ gần nhất', 'Lỗi gần đây'],
+    get label() {
+      return t().adminPages.modules.health.label
+    },
+    get summary() {
+      return t().adminPages.modules.health.summary
+    },
+    get bullets() {
+      return t().adminPages.modules.health.bullets
+    },
   },
   {
     id: 'notifications',
     slug: 'notifications',
-    label: 'Thông báo hệ thống',
-    group: 'Vận hành',
-    summary: 'Gửi in-app/web push, xem trước, lên lịch, retry và log gửi.',
+    group: 'operations',
     icon: Bell,
-    bullets: ['Gửi ngay', 'Lên lịch', 'Chọn user/nhóm/gói', 'Xem trước + xác nhận'],
+    get label() {
+      return t().adminPages.modules.notifications.label
+    },
+    get summary() {
+      return t().adminPages.modules.notifications.summary
+    },
+    get bullets() {
+      return t().adminPages.modules.notifications.bullets
+    },
   },
   {
     id: 'jobs',
     slug: 'jobs',
-    label: 'Lịch chạy',
-    group: 'Vận hành',
-    summary: 'Theo dõi tác vụ đã chạy, sắp chạy, trạng thái và lỗi gần đây.',
+    group: 'operations',
     icon: Clock,
-    bullets: ['Đang chờ/đang chạy/đã xong/lỗi', 'Chi tiết chỉ đọc', 'Retry/cancel khóa'],
+    get label() {
+      return t().adminPages.modules.jobs.label
+    },
+    get summary() {
+      return t().adminPages.modules.jobs.summary
+    },
+    get bullets() {
+      return t().adminPages.modules.jobs.bullets
+    },
   },
   {
     id: 'redeem',
     slug: 'redeem',
-    label: 'Mã Premium',
-    group: 'Tăng trưởng',
-    summary: 'Tạo code đơn lẻ/batch, chiến dịch, tra cứu, thu hồi và lịch sử dùng.',
+    group: 'growth',
     icon: Ticket,
-    bullets: ['Code đơn lẻ/batch', 'Prefix chiến dịch', 'Thu hồi code', 'Lịch sử dùng'],
+    get label() {
+      return t().adminPages.modules.redeem.label
+    },
+    get summary() {
+      return t().adminPages.modules.redeem.summary
+    },
+    get bullets() {
+      return t().adminPages.modules.redeem.bullets
+    },
   },
   {
     id: 'billing',
     slug: 'billing',
-    label: 'Thanh toán / Premium',
-    group: 'Tăng trưởng',
-    summary: 'Theo dõi gói Premium, đơn thanh toán, PayOS webhook và trạng thái user.',
+    group: 'growth',
     icon: CreditCard,
-    bullets: ['Gói Premium', 'Đơn thanh toán', 'Sức khỏe webhook', 'Cấp thủ công có audit'],
+    get label() {
+      return t().adminPages.modules.billing.label
+    },
+    get summary() {
+      return t().adminPages.modules.billing.summary
+    },
+    get bullets() {
+      return t().adminPages.modules.billing.bullets
+    },
   },
   {
     id: 'ai',
     slug: 'ai',
-    label: 'Điều hành AI',
-    group: 'Cấu hình',
-    summary: 'Bật/tắt AI, quota, model/nhà cung cấp, prompt template và test parser/OCR/insight.',
+    group: 'configuration',
     icon: Sparkles,
-    bullets: ['Cờ tính năng', 'Quota', 'Nhà cung cấp/model', 'Kết quả test đã lọc'],
+    get label() {
+      return t().adminPages.modules.ai.label
+    },
+    get summary() {
+      return t().adminPages.modules.ai.summary
+    },
+    get bullets() {
+      return t().adminPages.modules.ai.bullets
+    },
   },
   {
     id: 'email',
     slug: 'email',
-    label: 'Email / Resend',
-    group: 'Cấu hình',
-    summary: 'Kiểm tra Resend, gửi test email, template và lỗi gửi.',
+    group: 'configuration',
     icon: Mail,
-    bullets: ['Sức khỏe Resend', 'Test email', 'Template', 'Lỗi gửi'],
+    get label() {
+      return t().adminPages.modules.email.label
+    },
+    get summary() {
+      return t().adminPages.modules.email.summary
+    },
+    get bullets() {
+      return t().adminPages.modules.email.bullets
+    },
   },
   {
     id: 'config',
     slug: 'config',
-    label: 'Cài đặt hệ thống',
-    group: 'Cấu hình',
-    summary: 'Cờ tính năng, kill switch, banner bảo trì và giới hạn gói.',
+    group: 'configuration',
     icon: SlidersHorizontal,
-    bullets: ['Cờ tính năng', 'Giới hạn gói', 'Bảo trì', 'Chế độ duyệt'],
+    get label() {
+      return t().adminPages.modules.config.label
+    },
+    get summary() {
+      return t().adminPages.modules.config.summary
+    },
+    get bullets() {
+      return t().adminPages.modules.config.bullets
+    },
   },
   {
     id: 'support',
     slug: 'support',
-    label: 'Hỗ trợ user / nhóm',
-    group: 'Kiểm soát',
-    summary: 'Màn hỗ trợ chỉ đọc cho user, nhóm, Premium, redeem và lượt dùng AI.',
+    group: 'control',
     icon: Users,
-    bullets: ['Tra user', 'Vai trò trong nhóm', 'Premium', 'Ưu tiên chỉ đọc'],
+    get label() {
+      return t().adminPages.modules.support.label
+    },
+    get summary() {
+      return t().adminPages.modules.support.summary
+    },
+    get bullets() {
+      return t().adminPages.modules.support.bullets
+    },
   },
   {
     id: 'admin-access',
     slug: 'admin-access',
-    label: 'Quyền admin',
-    group: 'Kiểm soát',
-    summary: 'Quản lý người có quyền vào console, vai trò, trạng thái và audit bắt buộc.',
+    group: 'control',
     icon: ShieldCheck,
-    bullets: ['Owner-only', 'Role/status', 'Audit bắt buộc', 'Không thao tác SQL'],
+    get label() {
+      return t().adminPages.modules.adminAccess.label
+    },
+    get summary() {
+      return t().adminPages.modules.adminAccess.summary
+    },
+    get bullets() {
+      return t().adminPages.modules.adminAccess.bullets
+    },
   },
   {
     id: 'releases',
     slug: 'releases',
-    label: 'Thông báo phiên bản',
-    group: 'Kiểm soát',
-    summary: 'Soạn thông báo trong app và gắn với chiến dịch notification.',
+    group: 'control',
     icon: FileText,
-    bullets: ['Nháp/xuất bản', 'Xem trước', 'Liên kết chiến dịch'],
+    get label() {
+      return t().adminPages.modules.releases.label
+    },
+    get summary() {
+      return t().adminPages.modules.releases.summary
+    },
+    get bullets() {
+      return t().adminPages.modules.releases.bullets
+    },
   },
   {
     id: 'data-quality',
     slug: 'data-quality',
-    label: 'Kiểm tra dữ liệu',
-    group: 'Kiểm soát',
-    summary: 'Bộ quét phát hiện dữ liệu bất thường, cleanup chỉ sau khi có rule.',
+    group: 'control',
     icon: Search,
-    bullets: ['Bộ quét chỉ đọc', 'Danh sách lỗi', 'Dry-run trước cleanup'],
+    get label() {
+      return t().adminPages.modules.dataQuality.label
+    },
+    get summary() {
+      return t().adminPages.modules.dataQuality.summary
+    },
+    get bullets() {
+      return t().adminPages.modules.dataQuality.bullets
+    },
   },
   {
     id: 'audit',
     slug: 'audit',
-    label: 'Lịch sử thao tác',
-    group: 'Kiểm soát',
-    summary: 'Lịch sử thao tác admin, payload đã redact, trạng thái và lỗi.',
+    group: 'control',
     icon: Shield,
-    bullets: ['Người thao tác/action/thời gian', 'Tóm tắt payload', 'Thành công/thất bại', 'Bộ lọc'],
+    get label() {
+      return t().adminPages.modules.audit.label
+    },
+    get summary() {
+      return t().adminPages.modules.audit.summary
+    },
+    get bullets() {
+      return t().adminPages.modules.audit.bullets
+    },
   },
 ]
 
-export const consoleModuleGroups: ConsoleModuleGroup[] = ['Vận hành', 'Tăng trưởng', 'Cấu hình', 'Kiểm soát']
+export const consoleModuleGroups: ConsoleModuleGroup[] = ['operations', 'growth', 'configuration', 'control']
 
 export function pathForConsoleModule(module: ConsoleModule): string {
   return `/console/${module.slug}`

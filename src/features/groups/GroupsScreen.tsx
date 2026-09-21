@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Check, LogIn, Plus, RefreshCw, Sparkles, TriangleAlert, Users } from 'lucide-react'
 import { PageTransition } from '../../components/PageTransition'
 import { Avatar, Button, EmptyState } from '../../components/ui'
+import { useT } from '../../lib/i18n'
 import { useStore } from '../../lib/store'
 import { useShell } from '../../app/AppShell'
 import { formatCompactVnd } from '../../lib/format'
@@ -16,6 +17,7 @@ import { JoinByCodeSheet } from './JoinByCodeSheet'
 import { GroupGridSkeleton } from '../../components/Skeleton'
 
 export function GroupsScreen() {
+  const t = useT()
   const { groups, loading, mode, error, reload } = useStore()
   const { openCreateGroup } = useShell()
   const navigate = useNavigate()
@@ -30,11 +32,11 @@ export function GroupsScreen() {
           <Header onCreate={openCreateGroup} onJoin={() => setJoinOpen(true)} showJoin={isCloud} />
           <EmptyState
             icon={<TriangleAlert size={26} />}
-            title="Không tải được nhóm"
+            title={t.home.loadFailedTitle}
             description={error}
             action={
               <Button size="lg" variant="secondary" onClick={() => void reload()}>
-                <RefreshCw size={18} /> Thử lại
+                <RefreshCw size={18} /> {t.common.retry}
               </Button>
             }
           />
@@ -50,16 +52,16 @@ export function GroupsScreen() {
           <Header onCreate={openCreateGroup} onJoin={() => setJoinOpen(true)} showJoin={isCloud} />
           <EmptyState
             icon={<Sparkles size={26} />}
-            title="Chưa có nhóm nào"
-            description="Tạo nhóm đầu tiên để bắt đầu ghi chi tiêu và chia tiền sòng phẳng."
+            title={t.home.groupsEmptyTitle}
+            description={t.home.welcomeDescription}
             action={
               <div className="flex flex-col items-center gap-2.5">
                 <Button size="lg" onClick={openCreateGroup}>
-                  <Sparkles size={18} /> Tạo nhóm đầu tiên
+                  <Sparkles size={18} /> {t.home.createFirstGroup}
                 </Button>
                 {isCloud && (
                   <Button size="lg" variant="ghost" onClick={() => setJoinOpen(true)}>
-                    <LogIn size={18} /> Tham gia bằng mã/link
+                    <LogIn size={18} /> {t.home.joinByCode}
                   </Button>
                 )}
               </div>
@@ -111,17 +113,18 @@ function Header({
   onJoin: () => void
   showJoin: boolean
 }) {
+  const t = useT()
   return (
     <header className="flex items-center justify-between mb-4">
-      <h1 className="text-xl font-extrabold tracking-tight">Nhóm</h1>
+      <h1 className="text-xl font-extrabold tracking-tight">{t.home.groups}</h1>
       <div className="flex items-center gap-2">
         {showJoin && (
           <Button size="sm" variant="ghost" onClick={onJoin}>
-            <LogIn size={16} /> Tham gia
+            <LogIn size={16} /> {t.home.join}
           </Button>
         )}
         <Button size="sm" variant="secondary" onClick={onCreate}>
-          <Plus size={16} /> Tạo nhóm
+          <Plus size={16} /> {t.home.createGroup}
         </Button>
       </div>
     </header>
@@ -137,6 +140,7 @@ function GroupCard({
   onOpen: () => void
   onLongPress: () => void
 }) {
+  const t = useT()
   const spend = totalGroupSpend(group)
   const unsettled = useMemo(() => !settleState(group).isSettled, [group])
   const members = group.members
@@ -178,11 +182,11 @@ function GroupCard({
         </span>
         {unsettled ? (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-neg bg-neg/12">
-            <span className="h-1.5 w-1.5 rounded-full bg-neg" /> Cần QT
+            <span className="h-1.5 w-1.5 rounded-full bg-neg" /> {t.home.needsSettleShort}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold text-pos bg-pos/12">
-            <Check size={11} strokeWidth={3} /> Xong
+            <Check size={11} strokeWidth={3} /> {t.common.done}
           </span>
         )}
       </div>
@@ -192,7 +196,7 @@ function GroupCard({
 
       {/* Số tiền */}
       <div>
-        <p className="text-[11px] text-muted">Tổng chi</p>
+        <p className="text-[11px] text-muted">{t.home.totalSpendLabel}</p>
         <p className="font-extrabold text-lg tnum text-brand-600 dark:text-brand-300 leading-none mt-0.5">
           {formatCompactVnd(spend)}
         </p>
@@ -213,7 +217,7 @@ function GroupCard({
           </div>
         ) : (
           <span className="inline-flex items-center gap-1 text-[11px] text-faint">
-            <Users size={12} /> Chưa có ai
+            <Users size={12} /> {t.home.noMembers}
           </span>
         )}
         <span className="text-[11px] text-faint tnum">{members.length}</span>

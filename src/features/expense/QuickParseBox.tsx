@@ -4,6 +4,7 @@ import { Button, Input } from '../../components/ui'
 import { useToast } from '../../components/Toast'
 import { useStore } from '../../lib/store'
 import { useSubscription } from '../../lib/subscription'
+import { useT } from '../../lib/i18n'
 import { parseExpenseRuleBased, type ParsedExpense } from '../../lib/ai/parseExpense'
 import { parseExpenseRemote } from '../../lib/ai/remote'
 import { ocrReceiptRemote, type OcrItem } from '../../lib/ai/ocr'
@@ -29,6 +30,7 @@ export function QuickParseBox({
   const { mode } = useStore()
   const { isPremium } = useSubscription()
   const toast = useToast()
+  const t = useT()
   const fileRef = useRef<HTMLInputElement>(null)
   const [text, setText] = useState('')
   const [busy, setBusy] = useState<'rule' | 'ai' | 'ocr' | null>(null)
@@ -59,12 +61,12 @@ export function QuickParseBox({
       setRemaining(res.remaining)
       trackEvent('expense_quickparse_ai')
       if (res.remaining !== null) {
-        toast.success(`Đã điền. Còn ${res.remaining} lượt AI tháng này.`)
+        toast.success(t.expense.filledWithQuota({ n: res.remaining }))
       } else {
-        toast.success('Đã điền bằng AI.')
+        toast.success(t.expense.filledByAi)
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Không phân tích được.')
+      toast.error(e instanceof Error ? e.message : t.expense.parseFailed)
     } finally {
       setBusy(null)
     }
@@ -78,16 +80,16 @@ export function QuickParseBox({
     try {
       const res = await ocrReceiptRemote(file)
       if (res.items.length === 0) {
-        toast.show(res.message ?? 'Không nhận được món nào từ ảnh. Thử ảnh rõ hơn.', 'info')
+        toast.show(res.message ?? t.expense.ocrNoItems, 'info')
         return
       }
       onReceiptScanned(res.items, res.file)
       setRemaining(res.remaining)
       trackEvent('expense_ocr_receipt', { items: res.items.length })
-      const more = res.remaining !== null ? ` Còn ${res.remaining} lượt quét tháng này.` : ''
-      toast.success(`Đã nhận ${res.items.length} món.${more}`)
+      const more = res.remaining !== null ? t.expense.ocrQuotaLeft({ n: res.remaining }) : ''
+      toast.success(t.expense.ocrScanned({ n: res.items.length }) + more)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Không quét được hoá đơn.')
+      toast.error(err instanceof Error ? err.message : t.expense.ocrFailed)
     } finally {
       setBusy(null)
     }
@@ -97,12 +99,12 @@ export function QuickParseBox({
     <div className="rounded-2xl border border-[var(--border)] surface-sunken p-3 space-y-2.5">
       <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
         <Sparkles size={13} className="text-brand-600 dark:text-brand-300" />
-        Nhập nhanh bằng một câu
+        {t.expense.quickParseTitle}
       </div>
       <Input
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder='VD: "Ăn tối 500k Hùng trả chia đều"'
+        placeholder={t.expense.quickParsePlaceholder}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault()
@@ -118,7 +120,7 @@ export function QuickParseBox({
           onClick={fillNow}
           disabled={busy !== null || !text.trim()}
         >
-          <Zap size={15} /> Điền nhanh
+          <Zap size={15} /> {t.expense.quickFill}
         </Button>
         {canUseAI && (
           <Button
@@ -127,7 +129,7 @@ export function QuickParseBox({
             onClick={fillWithAI}
             disabled={busy !== null || !text.trim()}
           >
-            <Wand2 size={15} /> {busy === 'ai' ? 'Đang hiểu…' : 'Hiểu thông minh'}
+            <Wand2 size={15} /> {busy === 'ai' ? t.expense.aiThinking : t.expense.aiUnderstand}
           </Button>
         )}
       </div>
@@ -147,20 +149,22 @@ export function QuickParseBox({
             onClick={() => fileRef.current?.click()}
             disabled={busy !== null}
           >
-            <ReceiptText size={15} /> {busy === 'ocr' ? 'Đang quét hoá đơn…' : 'Quét hoá đơn (chia theo món)'}
+            <ReceiptText size={15} />{' '}
+            {busy === 'ocr' ? t.expense.scanningReceipt : t.expense.scanReceipt}
           </Button>
         </>
       )}
       <p className="text-[11px] text-faint leading-snug">
-        “Điền nhanh” miễn phí, tức thì.
+        {t.expense.quickParseNoteFree}
         {canUseAI ? (
           <>
-            {' '}“Hiểu thông minh” dùng AI cho câu phức tạp
-            {!isPremium && remaining !== null ? ` · còn ${remaining} lượt tháng này` : ''}
-            {!isPremium && remaining === null ? ' · miễn phí 15 lượt/tháng' : ''}.
+            {' '}
+            {t.expense.quickParseNoteAi}
+            {!isPremium && remaining !== null ? t.expense.quickParseQuotaLeft({ n: remaining }) : ''}
+            {!isPremium && remaining === null ? t.expense.quickParseNoteFreeQuota : ''}.
           </>
         ) : null}{' '}
-        Kết quả luôn cho bạn sửa lại.
+        {t.expense.quickParseNoteEditable}
       </p>
     </div>
   )

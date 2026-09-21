@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { type ReactNode } from 'react'
 import { Bell, Home, LayoutGrid, Plus, Settings, Sparkles } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { useT } from '../lib/i18n'
 import { useNotifications } from '../lib/notifications'
 
 function Item({
@@ -45,6 +46,7 @@ function Item({
 }
 
 export function BottomNav({ onCreate }: { onCreate: () => void }) {
+  const t = useT()
   const { unread } = useNotifications()
 
   return (
@@ -56,22 +58,22 @@ export function BottomNav({ onCreate }: { onCreate: () => void }) {
         className="relative flex items-stretch h-14 rounded-3xl glass border border-[var(--border-strong)] px-1"
         style={{ background: 'var(--nav)' }}
       >
-        <Item to="/" icon={<Home size={22} />} label="Trang chủ" />
-        <Item to="/groups" icon={<LayoutGrid size={22} />} label="Nhóm" />
+        <Item to="/" icon={<Home size={22} />} label={t.home.navHome} />
+        <Item to="/groups" icon={<LayoutGrid size={22} />} label={t.home.groups} />
 
         {/* Khe giữa cho nút + nổi */}
         <div className="relative flex-1 flex items-center justify-center">
           <button
             onClick={onCreate}
-            aria-label="Thêm khoản chi"
+            aria-label={t.home.addExpense}
             className="press absolute -top-5 grid place-items-center h-12 w-12 rounded-2xl gradient-brand text-white shadow-glow hover:brightness-110"
           >
             <Plus size={24} strokeWidth={2.5} />
           </button>
         </div>
 
-        <Item to="/notifications" icon={<Bell size={22} />} label="Thông báo" badge={unread} />
-        <Item to="/settings" icon={<Settings size={22} />} label="Cài đặt" />
+        <Item to="/notifications" icon={<Bell size={22} />} label={t.home.navNotifications} badge={unread} />
+        <Item to="/settings" icon={<Settings size={22} />} label={t.home.navSettings} />
       </div>
     </nav>
   )
@@ -115,6 +117,7 @@ function DesktopItem({
 }
 
 export function DesktopNav({ onCreate }: { onCreate: () => void }) {
+  const t = useT()
   const { unread } = useNotifications()
 
   return (
@@ -126,7 +129,7 @@ export function DesktopNav({ onCreate }: { onCreate: () => void }) {
           </span>
           <div>
             <p className="text-xl font-extrabold tracking-tight text-gradient">Splitz</p>
-            <p className="text-xs text-muted">Chia tiền nhóm</p>
+            <p className="text-xs text-muted">{t.home.navTagline}</p>
           </div>
         </div>
       </div>
@@ -135,20 +138,20 @@ export function DesktopNav({ onCreate }: { onCreate: () => void }) {
         onClick={onCreate}
         className="press mb-4 flex items-center justify-center gap-2 rounded-2xl gradient-brand px-4 py-3 text-sm font-extrabold text-white shadow-glow hover:brightness-110"
       >
-        <Plus size={18} strokeWidth={2.5} /> Ghi khoản chi
+        <Plus size={18} strokeWidth={2.5} /> {t.home.recordExpense}
       </button>
 
       <nav className="space-y-1.5">
-        <DesktopItem to="/" icon={<Home size={19} />} label="Trang chủ" />
-        <DesktopItem to="/groups" icon={<LayoutGrid size={19} />} label="Nhóm" />
-        <DesktopItem to="/notifications" icon={<Bell size={19} />} label="Thông báo" badge={unread} />
-        <DesktopItem to="/settings" icon={<Settings size={19} />} label="Cài đặt" />
+        <DesktopItem to="/" icon={<Home size={19} />} label={t.home.navHome} />
+        <DesktopItem to="/groups" icon={<LayoutGrid size={19} />} label={t.home.groups} />
+        <DesktopItem to="/notifications" icon={<Bell size={19} />} label={t.home.navNotifications} badge={unread} />
+        <DesktopItem to="/settings" icon={<Settings size={19} />} label={t.home.navSettings} />
       </nav>
 
       <div className="mt-auto rounded-2xl surface-sunken border border-[var(--border)] p-3">
-        <p className="text-xs font-semibold text-muted">Không giữ tiền</p>
+        <p className="text-xs font-semibold text-muted">{t.home.notHoldingFunds}</p>
         <p className="mt-1 text-xs leading-relaxed text-faint">
-          Splitz chỉ ghi chép, tạo QR và xác nhận hai chiều để công nợ minh bạch.
+          {t.home.transparencyNote}
         </p>
       </div>
     </aside>

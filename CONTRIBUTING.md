@@ -73,8 +73,15 @@ All four must pass. A few conventions worth knowing:
 - **Read the existing patterns before adding new ones.** Data access goes
   through the repositories in `src/lib/data/`; screens live under
   `src/features/<feature>/`; shared primitives are in `src/components/ui.tsx`.
-- **Keep user-facing copy in Vietnamese.** The product ships to Vietnamese users;
-  code, comments and docs may be in either language.
+- **Every user-facing string goes through the typed i18n dictionaries.** Add
+  the Vietnamese text to `src/lib/i18n/locales/vi/<namespace>.ts`, then the
+  English translation to the matching `en/` file typed as `typeof vi` — a
+  missing or misnamed key is a **compile error**, not a runtime blank. Do not
+  write `as const` in the dictionaries (it would force the English strings to
+  equal the Vietnamese ones). Inside components use `useT()`; outside React
+  (errors, formatters, `data/*`) call the module-level `t()` function. Code
+  comments may be in either language; bank names in `vietqr.ts` and the
+  Vietnamese parser keywords in `parseExpense.ts` stay Vietnamese by design.
 - **Comments explain constraints, not history.** Say why something must be the
   way it is, not what the next line does or which change introduced it.
 

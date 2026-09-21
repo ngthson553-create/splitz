@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { CheckCircle2, CreditCard, Database, Loader2, RefreshCw, Search, ShieldCheck, Ticket, TriangleAlert, Users } from 'lucide-react'
 import { Badge, Button, Card, EmptyState, Field, Input, Segmented } from '../../components/ui'
+import { t, useT } from '../../lib/i18n'
+import { getIntlLocale } from '../../lib/i18n/locale'
 import {
   grantAdminPremium,
   loadAdminBillingSnapshot,
@@ -20,36 +22,8 @@ type BillingView = 'overview' | 'subscriptions' | 'payments' | 'user'
 type SubscriptionFilter = AdminBillingSubscriptionStatus | 'all'
 type PaymentFilter = AdminBillingPaymentStatus | 'all'
 
-const DATE_FORMAT = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
-const NUMBER_FORMAT = new Intl.NumberFormat('vi-VN')
-const MONEY_FORMAT = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 })
-
-const VIEW_OPTIONS: { value: BillingView; label: string }[] = [
-  { value: 'overview', label: 'Tổng quan' },
-  { value: 'subscriptions', label: 'Gói Premium' },
-  { value: 'payments', label: 'Đơn thanh toán' },
-  { value: 'user', label: 'Tra Premium' },
-]
-
-const SUBSCRIPTION_OPTIONS: { value: SubscriptionFilter; label: string }[] = [
-  { value: 'all', label: 'Tất cả' },
-  { value: 'active', label: 'Đang dùng' },
-  { value: 'expired', label: 'Đã hết hạn' },
-]
-
-const PAYMENT_OPTIONS: { value: PaymentFilter; label: string }[] = [
-  { value: 'all', label: 'Tất cả' },
-  { value: 'pending', label: 'Đang chờ' },
-  { value: 'paid', label: 'Đã thanh toán' },
-  { value: 'cancelled', label: 'Đã hủy' },
-]
-
-const PLAN_OPTIONS: { value: AdminBillingGrantPlan; label: string }[] = [
-  { value: 'personal', label: 'Cá nhân' },
-  { value: 'team', label: 'Team' },
-]
-
 export function ConsoleBillingPage() {
+  const t = useT()
   const [snapshot, setSnapshot] = useState<AdminBillingSnapshot | null>(null)
   const [view, setView] = useState<BillingView>('overview')
   const [search, setSearch] = useState('')
@@ -71,6 +45,26 @@ export function ConsoleBillingPage() {
   const [grantNote, setGrantNote] = useState('')
   const [grantConfirmed, setGrantConfirmed] = useState(false)
 
+  const VIEW_OPTIONS: { value: BillingView; label: string }[] = [
+    { value: 'overview', label: t.adminBilling.viewOverview },
+    { value: 'subscriptions', label: t.adminBilling.viewSubscriptions },
+    { value: 'payments', label: t.adminBilling.viewPayments },
+    { value: 'user', label: t.adminBilling.viewLookup },
+  ]
+
+  const SUBSCRIPTION_OPTIONS: { value: SubscriptionFilter; label: string }[] = [
+    { value: 'all', label: t.adminBilling.filterAll },
+    { value: 'active', label: t.adminBilling.subActive },
+    { value: 'expired', label: t.adminBilling.subExpired },
+  ]
+
+  const PAYMENT_OPTIONS: { value: PaymentFilter; label: string }[] = [
+    { value: 'all', label: t.adminBilling.filterAll },
+    { value: 'pending', label: t.adminBilling.pending },
+    { value: 'paid', label: t.adminBilling.payPaid },
+    { value: 'cancelled', label: t.adminBilling.payCancelled },
+  ]
+
   const loadSnapshot = useCallback(async () => {
     setLoading(true)
     const next = await loadAdminBillingSnapshot(undefined, {
@@ -82,7 +76,7 @@ export function ConsoleBillingPage() {
     setSnapshot(next)
     setSelectedUserId((current) => (current && next?.subscriptions.some((row) => row.userId === current) ? current : next?.subscriptions[0]?.userId ?? null))
     setSelectedOrderCode((current) => (current && next?.payments.some((row) => row.orderCode === current) ? current : next?.payments[0]?.orderCode ?? null))
-    setNotice(next ? null : 'Không tải được snapshot thanh toán. Kiểm tra quyền admin hoặc Edge Function admin-billing.')
+    setNotice(next ? null : t.adminBilling.billingLoadFailed)
     setLoading(false)
   }, [paymentStatus, search, subscriptionStatus])
 
@@ -107,7 +101,7 @@ export function ConsoleBillingPage() {
   async function runLookup(rawQuery: string) {
     const query = rawQuery.trim()
     if (!query) {
-      setNotice('Cần nhập email hoặc user id để lookup.')
+      setNotice(t.adminBilling.lookupEmailRequired)
       return
     }
     setLookupLoading(true)
@@ -120,9 +114,9 @@ export function ConsoleBillingPage() {
       setGrantUserId(result.profile.userId)
       setSelectedUserId(result.profile.userId)
       setView('user')
-      setNotice('Đã tải hồ sơ billing của user.')
+      setNotice(t.adminBilling.lookupLoaded)
     } else {
-      setNotice('Không tìm thấy user hoặc Edge Function từ chối lookup.')
+      setNotice(t.adminBilling.lookupNotFound)
     }
     setLookupLoading(false)
   }
@@ -131,15 +125,15 @@ export function ConsoleBillingPage() {
     const cleanEmail = grantEmail.trim()
     const cleanUserId = grantUserId.trim()
     if (!cleanEmail && !cleanUserId) {
-      setNotice('Cần nhập email hoặc user id để cấp Premium.')
+      setNotice(t.adminBilling.grantTargetRequired)
       return
     }
     if (!grantConfirmed) {
-      setNotice('Cần tick xác nhận trước khi cấp Premium thủ công.')
+      setNotice(t.adminBilling.grantConfirmRequired)
       return
     }
     const target = cleanEmail || cleanUserId
-    const ok = window.confirm(`Cấp ${grantPlan} trong ${grantDays} ngày cho ${target}? Hành động này sẽ ghi audit.`)
+    const ok = window.confirm(t.adminBilling.grantConfirm({ plan: grantPlan, days: grantDays, target }))
     if (!ok) return
 
     setBusy(true)
@@ -152,12 +146,12 @@ export function ConsoleBillingPage() {
       note: grantNote,
     })
     if (result) {
-      setNotice(`Đã cấp ${planLabel(result.plan)} cho ${result.userEmail ?? target}.`)
+      setNotice(t.adminBilling.grantSuccess({ plan: planLabel(result.plan), target: result.userEmail ?? target }))
       setGrantConfirmed(false)
       await loadSnapshot()
       await runLookup(result.userEmail ?? result.userId)
     } else {
-      setNotice('Không cấp được Premium. Kiểm tra quyền owner/operator hoặc dữ liệu user.')
+      setNotice(t.adminBilling.grantFailed)
     }
     setBusy(false)
   }
@@ -171,21 +165,21 @@ export function ConsoleBillingPage() {
               <Badge tone="brand">Phase 8</Badge>
               <BillingStatusBadge status={snapshot?.summaryStatus ?? 'unknown'} />
             </div>
-            <h2 className="mt-2 text-2xl font-extrabold text-app lg:text-3xl">Thanh toán / Premium</h2>
+            <h2 className="mt-2 text-2xl font-extrabold text-app lg:text-3xl">{t.adminBilling.billingTitle}</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
-              Theo dõi gói Premium, đơn thanh toán, PayOS webhook và cấp Premium thủ công qua Edge Function admin-only có audit.
+              {t.adminBilling.billingDescription}
             </p>
           </div>
           <Button variant="secondary" onClick={() => void loadSnapshot()} disabled={loading || busy}>
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Làm mới
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} {t.adminBilling.refresh}
           </Button>
         </div>
 
         <div className="mt-5 grid gap-2 sm:grid-cols-4">
           <SummaryPill label="PayOS" value={providerStatusLabel(snapshot?.provider.status)} tone={snapshot?.provider.status === 'configured' ? 'pos' : 'warn'} />
-          <SummaryPill label="Premium đang dùng" value={NUMBER_FORMAT.format(activePremium)} tone="brand" />
-          <SummaryPill label="Đơn đang chờ" value={NUMBER_FORMAT.format(pendingOrders)} tone={pendingOrders > 0 ? 'warn' : 'pos'} />
-          <SummaryPill label="Cấp thủ công" value="Có audit" tone="pos" />
+          <SummaryPill label={t.adminBilling.summaryActivePremium} value={formatNumber(activePremium)} tone="brand" />
+          <SummaryPill label={t.adminBilling.summaryPendingOrders} value={formatNumber(pendingOrders)} tone={pendingOrders > 0 ? 'warn' : 'pos'} />
+          <SummaryPill label={t.adminBilling.summaryManualGrants} value={t.adminBilling.summaryManualGrantsValue} tone="pos" />
         </div>
         {notice && <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-semibold text-app">{notice}</p>}
       </Card>
@@ -196,7 +190,7 @@ export function ConsoleBillingPage() {
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem_11rem]">
             <label className="relative block">
               <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm email, tên, user id" className="pl-9" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.adminBilling.billingSearchPlaceholder} className="pl-9" />
             </label>
             <select value={subscriptionStatus} onChange={(event) => setSubscriptionStatus(event.target.value as SubscriptionFilter)} className="h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-solid)] px-3 text-sm font-semibold text-app outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30">
               {SUBSCRIPTION_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -282,17 +276,18 @@ function OverviewView({
   onSelectSubscription: (row: AdminBillingSubscription) => void
   onSelectPayment: (row: AdminBillingPaymentOrder) => void
 }) {
+  const t = useT()
   return (
     <div className="space-y-4">
       <MetricGrid metrics={snapshot?.metrics ?? []} loading={loading} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
         <section className="grid gap-4 lg:grid-cols-2 min-w-0">
           <Card className="overflow-hidden p-0">
-            <PanelHeader icon={<Users size={18} />} title="Gói Premium" subtitle="Gói đang/đã active gần nhất" />
+            <PanelHeader icon={<Users size={18} />} title={t.adminBilling.viewSubscriptions} subtitle={t.adminBilling.premiumPanelSubtitle} />
             <MiniSubscriptionList rows={(snapshot?.subscriptions ?? []).slice(0, 6)} loading={loading} onSelect={onSelectSubscription} />
           </Card>
           <Card className="overflow-hidden p-0">
-            <PanelHeader icon={<CreditCard size={18} />} title="Đơn thanh toán" subtitle="Đơn PayOS gần nhất" />
+            <PanelHeader icon={<CreditCard size={18} />} title={t.adminBilling.viewPayments} subtitle={t.adminBilling.paymentsPanelSubtitle} />
             <MiniPaymentList rows={(snapshot?.payments ?? []).slice(0, 6)} loading={loading} onSelect={onSelectPayment} />
           </Card>
         </section>
@@ -319,7 +314,7 @@ function MetricGrid({ metrics, loading }: { metrics: AdminBillingSnapshot['metri
       {metrics.map((metric) => (
         <Card key={metric.id} className="p-4">
           <p className="text-xs font-bold uppercase text-faint">{metric.label}</p>
-          <p className="mt-2 text-2xl font-extrabold text-app">{NUMBER_FORMAT.format(metric.value)}</p>
+          <p className="mt-2 text-2xl font-extrabold text-app">{formatNumber(metric.value)}</p>
           {metric.detail && <p className="mt-1 truncate text-xs font-semibold text-muted">{metric.detail}</p>}
         </Card>
       ))}
@@ -342,15 +337,16 @@ function PanelHeader({ icon, title, subtitle }: { icon: ReactNode; title: string
 }
 
 function MiniSubscriptionList({ rows, loading, onSelect }: { rows: AdminBillingSubscription[]; loading: boolean; onSelect: (row: AdminBillingSubscription) => void }) {
+  const t = useT()
   if (loading) return <SkeletonRows />
-  if (rows.length === 0) return <EmptyState icon={<Users size={28} />} title="Chưa có gói Premium" description="Gói sẽ hiện khi có user Premium hoặc bộ lọc khớp." />
+  if (rows.length === 0) return <EmptyState icon={<Users size={28} />} title={t.adminBilling.noSubscriptionsTitle} description={t.adminBilling.noSubscriptionsDescription} />
   return (
     <div className="divide-y divide-[var(--border)]">
       {rows.map((row) => (
         <button key={`${row.userId}-${row.updatedAt ?? row.createdAt}`} type="button" onClick={() => onSelect(row)} className="press grid w-full gap-2 px-4 py-3 text-left hover:bg-[var(--surface-2)] sm:grid-cols-[minmax(0,1fr)_7rem_6rem] sm:items-center">
           <span className="min-w-0">
             <span className="block truncate text-sm font-extrabold text-app">{row.userEmail ?? row.userId}</span>
-            <span className="mt-0.5 block truncate text-xs text-muted">{row.displayName ?? 'Chưa có tên'} · {formatDate(row.updatedAt ?? row.createdAt)}</span>
+            <span className="mt-0.5 block truncate text-xs text-muted">{row.displayName ?? t.adminBilling.noName} · {formatDate(row.updatedAt ?? row.createdAt)}</span>
           </span>
           <span><PlanBadge plan={row.plan} /></span>
           <span className="sm:justify-self-end"><SubscriptionStatusBadge status={row.status} /></span>
@@ -361,8 +357,9 @@ function MiniSubscriptionList({ rows, loading, onSelect }: { rows: AdminBillingS
 }
 
 function MiniPaymentList({ rows, loading, onSelect }: { rows: AdminBillingPaymentOrder[]; loading: boolean; onSelect: (row: AdminBillingPaymentOrder) => void }) {
+  const t = useT()
   if (loading) return <SkeletonRows />
-  if (rows.length === 0) return <EmptyState icon={<CreditCard size={28} />} title="Chưa có đơn thanh toán" description="Đơn PayOS sẽ hiện khi user tạo thanh toán." />
+  if (rows.length === 0) return <EmptyState icon={<CreditCard size={28} />} title={t.adminBilling.noPaymentsTitle} description={t.adminBilling.noPaymentsDescription} />
   return (
     <div className="divide-y divide-[var(--border)]">
       {rows.map((row) => (
@@ -380,21 +377,22 @@ function MiniPaymentList({ rows, loading, onSelect }: { rows: AdminBillingPaymen
 }
 
 function SubscriptionTable({ rows, selectedUserId, loading, onSelect }: { rows: AdminBillingSubscription[]; selectedUserId: string | null; loading: boolean; onSelect: (row: AdminBillingSubscription) => void }) {
+  const t = useT()
   return (
     <Card className="overflow-hidden p-0">
-      <PanelHeader icon={<Users size={18} />} title="Gói Premium" subtitle="Gói, trạng thái, nguồn kích hoạt và ngày hết hạn" />
-      {loading ? <SkeletonRows /> : rows.length === 0 ? <EmptyState icon={<Users size={28} />} title="Không có gói Premium" description="Thử đổi bộ lọc hoặc tra user cụ thể." /> : (
+      <PanelHeader icon={<Users size={18} />} title={t.adminBilling.viewSubscriptions} subtitle={t.adminBilling.subscriptionsTableSubtitle} />
+      {loading ? <SkeletonRows /> : rows.length === 0 ? <EmptyState icon={<Users size={28} />} title={t.adminBilling.noSubscriptionsFilteredTitle} description={t.adminBilling.filteredHint} /> : (
         <div className="divide-y divide-[var(--border)]">
           {rows.map((row) => (
             <button key={row.userId} type="button" onClick={() => onSelect(row)} aria-pressed={selectedUserId === row.userId} className={`press grid w-full gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-2)] lg:grid-cols-[minmax(13rem,1fr)_7rem_6rem_7rem_9rem] lg:items-center ${selectedUserId === row.userId ? 'bg-brand-500/8' : ''}`}>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-extrabold text-app">{row.userEmail ?? row.userId}</span>
-                <span className="mt-0.5 block truncate text-xs text-muted">{row.displayName ?? 'Chưa có tên'}</span>
+                <span className="mt-0.5 block truncate text-xs text-muted">{row.displayName ?? t.adminBilling.noName}</span>
               </span>
               <span><PlanBadge plan={row.plan} /></span>
               <span><SubscriptionStatusBadge status={row.status} /></span>
               <span className="text-sm font-semibold text-muted">{sourceLabel(row.source)}</span>
-              <span className="text-sm font-semibold text-app lg:text-right">{row.periodEnd ? formatDate(row.periodEnd) : 'Không hạn'}</span>
+              <span className="text-sm font-semibold text-app lg:text-right">{row.periodEnd ? formatDate(row.periodEnd) : t.adminBilling.noExpiry}</span>
             </button>
           ))}
         </div>
@@ -404,17 +402,18 @@ function SubscriptionTable({ rows, selectedUserId, loading, onSelect }: { rows: 
 }
 
 function PaymentTable({ rows, selectedOrderCode, loading, onSelect }: { rows: AdminBillingPaymentOrder[]; selectedOrderCode: string | null; loading: boolean; onSelect: (row: AdminBillingPaymentOrder) => void }) {
+  const t = useT()
   return (
     <Card className="overflow-hidden p-0">
-      <PanelHeader icon={<CreditCard size={18} />} title="Đơn thanh toán" subtitle="Đơn PayOS theo user, trạng thái và thời gian" />
-      {loading ? <SkeletonRows /> : rows.length === 0 ? <EmptyState icon={<CreditCard size={28} />} title="Không có đơn thanh toán" description="Thử đổi bộ lọc hoặc tra user cụ thể." /> : (
+      <PanelHeader icon={<CreditCard size={18} />} title={t.adminBilling.viewPayments} subtitle={t.adminBilling.paymentsTableSubtitle} />
+      {loading ? <SkeletonRows /> : rows.length === 0 ? <EmptyState icon={<CreditCard size={28} />} title={t.adminBilling.noPaymentsFilteredTitle} description={t.adminBilling.filteredHint} /> : (
         <div className="divide-y divide-[var(--border)]">
           {rows.map((row) => (
             <button key={row.orderCode} type="button" onClick={() => onSelect(row)} aria-pressed={selectedOrderCode === row.orderCode} className={`press grid w-full gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-2)] lg:grid-cols-[9rem_minmax(13rem,1fr)_7rem_7rem_7rem_9rem] lg:items-center ${selectedOrderCode === row.orderCode ? 'bg-brand-500/8' : ''}`}>
               <span className="text-sm font-extrabold text-app">{row.orderCode}</span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-bold text-app">{row.userEmail ?? row.userId}</span>
-                <span className="mt-0.5 block truncate text-xs text-muted">{row.displayName ?? 'Chưa có tên'}</span>
+                <span className="mt-0.5 block truncate text-xs text-muted">{row.displayName ?? t.adminBilling.noName}</span>
               </span>
               <span><PlanBadge plan={row.plan} /></span>
               <span className="text-sm font-semibold text-muted">{cycleLabel(row.cycle)}</span>
@@ -429,24 +428,25 @@ function PaymentTable({ rows, selectedOrderCode, loading, onSelect }: { rows: Ad
 }
 
 function SubscriptionDetail({ row }: { row: AdminBillingSubscription | null }) {
+  const t = useT()
   return (
     <Card className="p-5">
       <div className="flex items-center gap-3">
         <span className="grid h-11 w-11 place-items-center rounded-2xl surface-sunken text-brand-600 dark:text-brand-300"><ShieldCheck size={20} /></span>
         <div>
-          <h3 className="font-extrabold text-app">Chi tiết gói Premium</h3>
-          <p className="text-xs text-muted">Nguồn Premium và hạn còn lại.</p>
+          <h3 className="font-extrabold text-app">{t.adminBilling.subscriptionDetailTitle}</h3>
+          <p className="text-xs text-muted">{t.adminBilling.subscriptionDetailDescription}</p>
         </div>
       </div>
-      {!row ? <p className="mt-4 text-sm text-muted">Chưa chọn gói Premium.</p> : (
+      {!row ? <p className="mt-4 text-sm text-muted">{t.adminBilling.noSubscriptionSelected}</p> : (
         <div className="mt-5 space-y-2">
-          <MetaRow label="User" value={row.userEmail ?? row.userId} />
-          <MetaRow label="Gói" value={planLabel(row.plan)} />
-          <MetaRow label="Trạng thái" value={subscriptionStatusLabel(row.status)} />
-          <MetaRow label="Nguồn" value={sourceLabel(row.source)} />
-          <MetaRow label="Hết hạn" value={row.periodEnd ? formatDate(row.periodEnd) : 'Không hạn'} />
-          <MetaRow label="Ngày còn lại" value={row.daysLeft == null ? 'Không rõ' : `${row.daysLeft} ngày`} />
-          <MetaRow label="Cập nhật" value={row.updatedAt ? formatDate(row.updatedAt) : 'Không rõ'} />
+          <MetaRow label={t.adminBilling.labelUser} value={row.userEmail ?? row.userId} />
+          <MetaRow label={t.adminBilling.labelPlan} value={planLabel(row.plan)} />
+          <MetaRow label={t.adminBilling.labelStatus} value={subscriptionStatusLabel(row.status)} />
+          <MetaRow label={t.adminBilling.labelSource} value={sourceLabel(row.source)} />
+          <MetaRow label={t.adminBilling.labelExpiry} value={row.periodEnd ? formatDate(row.periodEnd) : t.adminBilling.noExpiry} />
+          <MetaRow label={t.adminBilling.labelDaysLeft} value={row.daysLeft == null ? t.adminBilling.unknown : t.adminBilling.daysCount({ n: row.daysLeft })} />
+          <MetaRow label={t.adminBilling.labelUpdatedAt} value={row.updatedAt ? formatDate(row.updatedAt) : t.adminBilling.unknown} />
         </div>
       )}
     </Card>
@@ -454,25 +454,26 @@ function SubscriptionDetail({ row }: { row: AdminBillingSubscription | null }) {
 }
 
 function PaymentDetail({ row }: { row: AdminBillingPaymentOrder | null }) {
+  const t = useT()
   return (
     <Card className="p-5">
       <div className="flex items-center gap-3">
         <span className="grid h-11 w-11 place-items-center rounded-2xl surface-sunken text-brand-600 dark:text-brand-300"><CreditCard size={20} /></span>
         <div>
-          <h3 className="font-extrabold text-app">Chi tiết đơn thanh toán</h3>
-          <p className="text-xs text-muted">Đơn PayOS và trạng thái webhook.</p>
+          <h3 className="font-extrabold text-app">{t.adminBilling.paymentDetailTitle}</h3>
+          <p className="text-xs text-muted">{t.adminBilling.paymentDetailDescription}</p>
         </div>
       </div>
-      {!row ? <p className="mt-4 text-sm text-muted">Chưa chọn đơn thanh toán.</p> : (
+      {!row ? <p className="mt-4 text-sm text-muted">{t.adminBilling.noPaymentSelected}</p> : (
         <div className="mt-5 space-y-2">
-          <MetaRow label="Mã đơn" value={row.orderCode} />
-          <MetaRow label="User" value={row.userEmail ?? row.userId} />
-          <MetaRow label="Gói" value={planLabel(row.plan)} />
-          <MetaRow label="Chu kỳ" value={cycleLabel(row.cycle)} />
-          <MetaRow label="Số tiền" value={formatMoney(row.amount)} />
-          <MetaRow label="Trạng thái" value={paymentStatusLabel(row.status)} />
-          <MetaRow label="Tạo lúc" value={formatDate(row.createdAt)} />
-          <MetaRow label="Thanh toán" value={row.paidAt ? formatDate(row.paidAt) : 'Chưa thanh toán'} />
+          <MetaRow label={t.adminBilling.labelOrderCode} value={row.orderCode} />
+          <MetaRow label={t.adminBilling.labelUser} value={row.userEmail ?? row.userId} />
+          <MetaRow label={t.adminBilling.labelPlan} value={planLabel(row.plan)} />
+          <MetaRow label={t.adminBilling.labelCycle} value={cycleLabel(row.cycle)} />
+          <MetaRow label={t.adminBilling.labelAmount} value={formatMoney(row.amount)} />
+          <MetaRow label={t.adminBilling.labelStatus} value={paymentStatusLabel(row.status)} />
+          <MetaRow label={t.adminBilling.labelCreatedAt} value={formatDate(row.createdAt)} />
+          <MetaRow label={t.adminBilling.labelPaidAt} value={row.paidAt ? formatDate(row.paidAt) : t.adminBilling.notPaid} />
         </div>
       )}
     </Card>
@@ -480,19 +481,20 @@ function PaymentDetail({ row }: { row: AdminBillingPaymentOrder | null }) {
 }
 
 function LookupPanel({ query, onQueryChange, loading, onLookup }: { query: string; onQueryChange: (value: string) => void; loading: boolean; onLookup: () => void }) {
+  const t = useT()
   return (
     <Card className="p-5">
       <div className="flex items-center gap-3">
         <span className="grid h-11 w-11 place-items-center rounded-2xl gradient-brand text-white shadow-soft"><Search size={20} /></span>
         <div>
-          <h3 className="font-extrabold text-app">Tra Premium</h3>
-          <p className="text-xs text-muted">Tra email hoặc user id qua admin-billing.</p>
+          <h3 className="font-extrabold text-app">{t.adminBilling.lookupPanelTitle}</h3>
+          <p className="text-xs text-muted">{t.adminBilling.lookupPanelDescription}</p>
         </div>
       </div>
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <Input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder="user@example.com hoặc user id" />
+        <Input value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder={t.adminBilling.lookupInputPlaceholder} />
         <Button onClick={onLookup} disabled={loading} className="sm:w-36">
-          {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />} Tra cứu
+          {loading ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />} {t.adminBilling.lookupButton}
         </Button>
       </div>
     </Card>
@@ -500,8 +502,9 @@ function LookupPanel({ query, onQueryChange, loading, onLookup }: { query: strin
 }
 
 function UserDetail({ detail, loading }: { detail: AdminBillingUserDetail | null; loading: boolean }) {
+  const t = useT()
   if (loading) return <Card className="h-72 animate-pulse bg-[var(--surface-2)]" />
-  if (!detail) return <EmptyState icon={<Users size={28} />} title="Chưa chọn user" description="Tra cứu hoặc bấm một gói/đơn thanh toán để xem hồ sơ Premium." />
+  if (!detail) return <EmptyState icon={<Users size={28} />} title={t.adminBilling.noUserSelectedTitle} description={t.adminBilling.noUserSelectedDescription} />
   return (
     <div className="space-y-4">
       <Card className="p-5">
@@ -513,24 +516,24 @@ function UserDetail({ detail, loading }: { detail: AdminBillingUserDetail | null
           </div>
         </div>
         <div className="mt-5 grid gap-2 sm:grid-cols-2">
-          <SummaryPill label="Gói" value={detail.subscription ? planLabel(detail.subscription.plan) : 'Free'} tone={detail.subscription?.plan && detail.subscription.plan !== 'free' ? 'brand' : 'muted'} />
-          <SummaryPill label="Trạng thái" value={detail.subscription ? subscriptionStatusLabel(detail.subscription.status) : 'Không có'} tone={detail.subscription?.status === 'active' ? 'pos' : 'warn'} />
+          <SummaryPill label={t.adminBilling.labelPlan} value={detail.subscription ? planLabel(detail.subscription.plan) : 'Free'} tone={detail.subscription?.plan && detail.subscription.plan !== 'free' ? 'brand' : 'muted'} />
+          <SummaryPill label={t.adminBilling.labelStatus} value={detail.subscription ? subscriptionStatusLabel(detail.subscription.status) : t.adminBilling.none} tone={detail.subscription?.status === 'active' ? 'pos' : 'warn'} />
         </div>
         <div className="mt-4 space-y-2">
-          <MetaRow label="User id" value={detail.profile.userId} />
-          <MetaRow label="Hết hạn" value={detail.subscription?.periodEnd ? formatDate(detail.subscription.periodEnd) : 'Không có'} />
-          <MetaRow label="Nguồn" value={sourceLabel(detail.subscription?.source ?? null)} />
+          <MetaRow label={t.adminBilling.labelUserId} value={detail.profile.userId} />
+          <MetaRow label={t.adminBilling.labelExpiry} value={detail.subscription?.periodEnd ? formatDate(detail.subscription.periodEnd) : t.adminBilling.none} />
+          <MetaRow label={t.adminBilling.labelSource} value={sourceLabel(detail.subscription?.source ?? null)} />
         </div>
       </Card>
 
       <Card className="overflow-hidden p-0">
-        <PanelHeader icon={<CreditCard size={18} />} title="Lịch sử thanh toán" subtitle="10 đơn gần nhất của user" />
+        <PanelHeader icon={<CreditCard size={18} />} title={t.adminBilling.paymentHistoryTitle} subtitle={t.adminBilling.paymentHistorySubtitle} />
         <MiniPaymentList rows={detail.payments.slice(0, 10)} loading={false} onSelect={() => undefined} />
       </Card>
 
       <Card className="overflow-hidden p-0">
-        <PanelHeader icon={<Ticket size={18} />} title="Lịch sử redeem" subtitle="Code đã dùng gần nhất" />
-        {detail.redemptions.length === 0 ? <EmptyState icon={<Ticket size={28} />} title="Chưa có redeem" /> : (
+        <PanelHeader icon={<Ticket size={18} />} title={t.adminBilling.redeemHistoryTitle} subtitle={t.adminBilling.redeemHistorySubtitle} />
+        {detail.redemptions.length === 0 ? <EmptyState icon={<Ticket size={28} />} title={t.adminBilling.noRedeemTitle} /> : (
           <div className="divide-y divide-[var(--border)]">
             {detail.redemptions.map((row) => (
               <div key={row.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_7rem_8rem] sm:items-center">
@@ -538,8 +541,8 @@ function UserDetail({ detail, loading }: { detail: AdminBillingUserDetail | null
                   <span className="block truncate text-sm font-extrabold text-app">{row.code}</span>
                   <span className="mt-0.5 block truncate text-xs text-muted">{formatDate(row.usedAt)}</span>
                 </span>
-                <span>{row.plan ? <PlanBadge plan={row.plan} /> : <Badge tone="muted">chưa rõ</Badge>}</span>
-                <span className="text-sm font-semibold text-muted sm:text-right">{row.durationDays ?? 0} ngày</span>
+                <span>{row.plan ? <PlanBadge plan={row.plan} /> : <Badge tone="muted">{t.adminBilling.planUnknownBadge}</Badge>}</span>
+                <span className="text-sm font-semibold text-muted sm:text-right">{t.adminBilling.daysCount({ n: row.durationDays ?? 0 })}</span>
               </div>
             ))}
           </div>
@@ -580,90 +583,97 @@ function ManualGrantPanel({
   onConfirmedChange: (value: boolean) => void
   onGrant: () => void
 }) {
+  const t = useT()
+  const PLAN_OPTIONS: { value: AdminBillingGrantPlan; label: string }[] = [
+    { value: 'personal', label: t.adminBilling.planPersonal },
+    { value: 'team', label: 'Team' },
+  ]
   return (
     <Card className="p-5">
       <div className="flex items-center gap-3">
         <span className="grid h-11 w-11 place-items-center rounded-2xl gradient-brand text-white shadow-soft"><ShieldCheck size={20} /></span>
         <div>
-          <h3 className="font-extrabold text-app">Cấp Premium thủ công</h3>
-          <p className="text-xs text-muted">Cấp/gia hạn Premium qua service role + audit.</p>
+          <h3 className="font-extrabold text-app">{t.adminBilling.grantPanelTitle}</h3>
+          <p className="text-xs text-muted">{t.adminBilling.grantPanelDescription}</p>
         </div>
       </div>
 
       <div className="mt-5 space-y-3">
-        <Field label="Email user">
+        <Field label={t.adminBilling.labelUserEmail}>
           <Input value={email} onChange={(event) => onEmailChange(event.target.value)} placeholder="user@example.com" />
         </Field>
-        <Field label="User id">
-          <Input value={userId} onChange={(event) => onUserIdChange(event.target.value)} placeholder="UUID nếu cần" />
+        <Field label={t.adminBilling.labelUserId}>
+          <Input value={userId} onChange={(event) => onUserIdChange(event.target.value)} placeholder={t.adminBilling.uuidPlaceholder} />
         </Field>
-        <Field label="Gói">
+        <Field label={t.adminBilling.labelPlan}>
           <Segmented options={PLAN_OPTIONS} value={plan} onChange={onPlanChange} />
         </Field>
-        <Field label="Số ngày">
+        <Field label={t.adminBilling.labelDays}>
           <Input type="number" min={1} max={3650} value={days} onChange={(event) => onDaysChange(Number(event.target.value))} />
         </Field>
         <label className="block space-y-1.5">
-          <span className="text-[13px] font-semibold text-muted">Ghi chú audit</span>
+          <span className="text-[13px] font-semibold text-muted">{t.adminBilling.labelAuditNote}</span>
           <textarea value={note} onChange={(event) => onNoteChange(event.target.value)} rows={3} className="w-full rounded-xl border border-[var(--border)] surface-sunken px-3.5 py-3 text-sm text-app outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30" />
         </label>
       </div>
 
       <div className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
-        <p className="text-xs font-bold uppercase text-faint">Xem trước</p>
-        <p className="mt-1 text-sm font-extrabold text-app">{planLabel(plan)} · {NUMBER_FORMAT.format(days)} ngày</p>
-        <p className="mt-1 break-words text-xs font-semibold text-muted">{email || userId || 'Chưa chọn user'}</p>
+        <p className="text-xs font-bold uppercase text-faint">{t.adminBilling.previewTitle}</p>
+        <p className="mt-1 text-sm font-extrabold text-app">{t.adminBilling.previewLine({ plan: planLabel(plan), days: formatNumber(days) })}</p>
+        <p className="mt-1 break-words text-xs font-semibold text-muted">{email || userId || t.adminBilling.noUserSelectedTitle}</p>
       </div>
 
       <label className="mt-4 flex items-start gap-2 text-sm font-semibold text-muted">
         <input type="checkbox" checked={confirmed} onChange={(event) => onConfirmedChange(event.target.checked)} className="mt-1 h-4 w-4 rounded border-[var(--border)] accent-[var(--brand-500)]" />
-        <span>Đã kiểm tra đúng user, gói và số ngày.</span>
+        <span>{t.adminBilling.confirmCheckbox}</span>
       </label>
 
       <Button className="mt-4" onClick={onGrant} disabled={busy || !confirmed}>
-        {busy ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />} Xác nhận cấp Premium
+        {busy ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />} {t.adminBilling.grantButton}
       </Button>
     </Card>
   )
 }
 
 function PayosHealth({ provider, checkedAt }: { provider: AdminBillingSnapshot['provider'] | null; checkedAt: string | null }) {
+  const t = useT()
   return (
     <Card className="p-5">
       <div className="flex items-center gap-3">
         <span className="grid h-11 w-11 place-items-center rounded-2xl surface-sunken text-brand-600 dark:text-brand-300"><Database size={20} /></span>
         <div>
-          <h3 className="font-extrabold text-app">Sức khỏe PayOS</h3>
-          <p className="text-xs text-muted">Secret chỉ được kiểm tra ở mức đã cấu hình/thiếu cấu hình.</p>
+          <h3 className="font-extrabold text-app">{t.adminBilling.payosHealthTitle}</h3>
+          <p className="text-xs text-muted">{t.adminBilling.payosHealthDescription}</p>
         </div>
       </div>
       <div className="mt-5 space-y-2">
-        <MetaRow label="Trạng thái" value={provider?.detail ?? 'Đang tải'} />
-        <MetaRow label="Đơn chờ quá lâu" value={String(provider?.stalePendingCount ?? 0)} />
-        <MetaRow label="Đã kiểm tra" value={checkedAt ? formatDate(checkedAt) : 'Chưa có'} />
+        <MetaRow label={t.adminBilling.labelStatus} value={provider?.detail ?? t.adminBilling.loading} />
+        <MetaRow label={t.adminBilling.labelStalePending} value={String(provider?.stalePendingCount ?? 0)} />
+        <MetaRow label={t.adminBilling.labelCheckedAt} value={checkedAt ? formatDate(checkedAt) : t.adminBilling.notYet} />
       </div>
     </Card>
   )
 }
 
 function RecentErrors({ errors, loading }: { errors: AdminBillingError[]; loading: boolean }) {
+  const t = useT()
   return (
     <Card className="p-5">
       <div className="flex items-center gap-3">
         <span className="grid h-11 w-11 place-items-center rounded-2xl surface-sunken text-neg"><TriangleAlert size={20} /></span>
         <div>
-          <h3 className="font-extrabold text-app">Lỗi billing gần đây</h3>
-          <p className="text-xs text-muted">Audit lỗi đã redact.</p>
+          <h3 className="font-extrabold text-app">{t.adminBilling.recentErrorsTitle}</h3>
+          <p className="text-xs text-muted">{t.adminBilling.recentErrorsDescription}</p>
         </div>
       </div>
       {loading ? <div className="mt-4 h-24 animate-pulse rounded-2xl bg-[var(--surface-2)]" /> : errors.length === 0 ? (
-        <p className="mt-4 text-sm font-semibold text-muted">Không có lỗi billing gần đây.</p>
+        <p className="mt-4 text-sm font-semibold text-muted">{t.adminBilling.noRecentErrors}</p>
       ) : (
         <div className="mt-4 space-y-3">
           {errors.map((error) => (
             <div key={error.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
               <p className="text-sm font-extrabold text-app">{error.action ?? error.source}</p>
-              <p className="mt-1 break-words text-xs text-muted">{error.message ?? 'Không có message'}</p>
+              <p className="mt-1 break-words text-xs text-muted">{error.message ?? t.adminBilling.noMessage}</p>
               <p className="mt-2 text-xs font-semibold text-faint">{formatDate(error.createdAt)}</p>
             </div>
           ))}
@@ -701,10 +711,11 @@ function SummaryPill({ label, value, tone }: { label: string; value: string; ton
 }
 
 function BillingStatusBadge({ status }: { status: AdminBillingStatus }) {
-  if (status === 'configured' || status === 'ok') return <Badge tone="pos"><CheckCircle2 size={13} />Đã cấu hình</Badge>
-  if (status === 'missing') return <Badge tone="neg">Thiếu cấu hình</Badge>
-  if (status === 'failed') return <Badge tone="neg">Lỗi</Badge>
-  return <Badge tone="muted">Chưa rõ</Badge>
+  const t = useT()
+  if (status === 'configured' || status === 'ok') return <Badge tone="pos"><CheckCircle2 size={13} />{t.adminBilling.statusConfigured}</Badge>
+  if (status === 'missing') return <Badge tone="neg">{t.adminBilling.statusMissing}</Badge>
+  if (status === 'failed') return <Badge tone="neg">{t.adminBilling.statusFailed}</Badge>
+  return <Badge tone="muted">{t.adminBilling.statusUnknown}</Badge>
 }
 
 function PlanBadge({ plan }: { plan: string }) {
@@ -722,39 +733,46 @@ function PaymentStatusBadge({ status }: { status: AdminBillingPaymentStatus }) {
 }
 
 function planLabel(plan: string) {
-  return plan === 'team' ? 'Team' : plan === 'personal' ? 'Cá nhân' : 'Free'
+  return plan === 'team' ? 'Team' : plan === 'personal' ? t().adminBilling.planPersonal : 'Free'
 }
 
 function sourceLabel(source: string | null) {
-  return source === 'payos' ? 'PayOS' : source === 'redemption' ? 'Redeem' : source === 'manual' ? 'Thủ công' : 'Không có'
+  return source === 'payos' ? 'PayOS' : source === 'redemption' ? 'Redeem' : source === 'manual' ? t().adminBilling.sourceManual : t().adminBilling.none
 }
 
 function subscriptionStatusLabel(status: AdminBillingSubscriptionStatus) {
-  return status === 'active' ? 'Đang dùng' : 'Đã hết hạn'
+  const a = t().adminBilling
+  return status === 'active' ? a.subActive : a.subExpired
 }
 
 function paymentStatusLabel(status: AdminBillingPaymentStatus) {
-  if (status === 'paid') return 'Đã thanh toán'
-  if (status === 'pending') return 'Đang chờ'
-  return 'Đã hủy'
+  const a = t().adminBilling
+  if (status === 'paid') return a.payPaid
+  if (status === 'pending') return a.pending
+  return a.payCancelled
 }
 
 function providerStatusLabel(status: AdminBillingStatus | undefined) {
-  if (status === 'configured' || status === 'ok') return 'Đã cấu hình'
-  if (status === 'missing') return 'Thiếu cấu hình'
-  if (status === 'failed') return 'Lỗi'
-  return 'Chưa rõ'
+  const a = t().adminBilling
+  if (status === 'configured' || status === 'ok') return a.statusConfigured
+  if (status === 'missing') return a.statusMissing
+  if (status === 'failed') return a.statusFailed
+  return a.statusUnknown
 }
 
 function cycleLabel(cycle: string) {
-  return cycle === 'year' ? 'Năm' : 'Tháng'
+  return cycle === 'year' ? t().adminBilling.cycleYear : t().adminBilling.cycleMonth
 }
 
 function formatDate(value: string) {
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : DATE_FORMAT.format(date)
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(getIntlLocale(), { dateStyle: 'short', timeStyle: 'short' }).format(date)
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat(getIntlLocale()).format(value)
 }
 
 function formatMoney(value: number) {
-  return MONEY_FORMAT.format(value)
+  return new Intl.NumberFormat(getIntlLocale(), { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value)
 }

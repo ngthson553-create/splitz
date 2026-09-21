@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Bell, BellRing, Loader2, RefreshCw, Send, ShieldAlert } from 'lucide-react'
 import { Badge, Button, Card, EmptyState, Input, Segmented } from '../../components/ui'
+import { t, useT } from '../../lib/i18n'
+import { getIntlLocale } from '../../lib/i18n/locale'
 import {
   listAdminNotificationDeliveries,
   listAdminNotifications,
@@ -16,17 +18,13 @@ import {
 
 type ChannelKey = 'inApp' | 'webPush'
 
-const TARGET_OPTIONS: { value: AdminNotificationTargetType; label: string }[] = [
-  { value: 'all', label: 'Tất cả' },
-  { value: 'free', label: 'Free' },
-  { value: 'premium', label: 'Premium' },
-  { value: 'user', label: 'User' },
-  { value: 'group', label: 'Nhóm' },
-]
-
-const DATE_FORMAT = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
+const CHANNEL_LABEL: Record<AdminNotificationChannel, string> = {
+  in_app: 'in-app',
+  web_push: 'web push',
+}
 
 export function ConsoleNotificationsPage() {
+  const t = useT()
   const [campaigns, setCampaigns] = useState<AdminNotificationCampaign[]>([])
   const [deliveries, setDeliveries] = useState<AdminNotificationDelivery[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -41,6 +39,14 @@ export function ConsoleNotificationsPage() {
   const [targetValue, setTargetValue] = useState('')
   const [channels, setChannels] = useState<Record<ChannelKey, boolean>>({ inApp: true, webPush: true })
   const [preview, setPreview] = useState<{ targetCount: number; pushSubscriberCount: number } | null>(null)
+
+  const TARGET_OPTIONS: { value: AdminNotificationTargetType; label: string }[] = [
+    { value: 'all', label: t.adminBilling.filterAll },
+    { value: 'free', label: 'Free' },
+    { value: 'premium', label: 'Premium' },
+    { value: 'user', label: t.adminBilling.labelUser },
+    { value: 'group', label: t.adminBilling.targetGroup },
+  ]
 
   const loadCampaigns = useCallback(async () => {
     setLoadingCampaigns(true)
@@ -90,7 +96,7 @@ export function ConsoleNotificationsPage() {
       channels: { inApp: channels.inApp, webPush: channels.webPush },
     })
     setPreview(result)
-    setNotice(result ? `Preview: ${result.targetCount} user, ${result.pushSubscriberCount} push subscription.` : 'Không preview được target.')
+    setNotice(result ? t.adminBilling.previewOk({ users: result.targetCount, devices: result.pushSubscriberCount }) : t.adminBilling.previewFailed)
     setBusy(false)
   }
 
@@ -98,23 +104,23 @@ export function ConsoleNotificationsPage() {
     const cleanTitle = title.trim()
     const cleanBody = body.trim()
     if (!cleanTitle || !cleanBody) {
-      setNotice('Cần nhập tiêu đề và nội dung thông báo.')
+      setNotice(t.adminBilling.notifContentRequired)
       return
     }
     if (!channels.inApp && !channels.webPush) {
-      setNotice('Cần chọn ít nhất một kênh gửi.')
+      setNotice(t.adminBilling.notifChannelRequired)
       return
     }
     if ((targetType === 'user' || targetType === 'group') && !targetValue.trim()) {
-      setNotice(targetType === 'user' ? 'Cần nhập email user.' : 'Cần nhập group id.')
+      setNotice(targetType === 'user' ? t.adminBilling.notifUserEmailRequired : t.adminBilling.notifGroupIdRequired)
       return
     }
     if (targetType === 'all') {
       if (!preview || preview.targetCount <= 0) {
-        setNotice('Cần preview target trước khi gửi toàn hệ thống.')
+        setNotice(t.adminBilling.notifPreviewRequired)
         return
       }
-      const ok = window.confirm('Gửi thông báo tới tất cả user? Hành động này sẽ được audit và ghi delivery log.')
+      const ok = window.confirm(t.adminBilling.notifSendAllConfirm)
       if (!ok) return
     }
 
@@ -129,12 +135,12 @@ export function ConsoleNotificationsPage() {
       channels: { inApp: channels.inApp, webPush: channels.webPush },
     })
     if (result) {
-      setNotice(`Đã gửi: ${result.inAppSent} in-app, ${result.pushSent} push thành công, ${result.pushFailed} push lỗi.`)
+      setNotice(t.adminBilling.notifSentSummary({ inApp: result.inAppSent, push: result.pushSent, failed: result.pushFailed }))
       setSelectedId(result.notificationId)
       setPreview(null)
       await loadCampaigns()
     } else {
-      setNotice('Không gửi được thông báo. Kiểm tra quyền admin, target hoặc Edge Function.')
+      setNotice(t.adminBilling.notifSendFailed)
     }
     setBusy(false)
   }
@@ -152,19 +158,19 @@ export function ConsoleNotificationsPage() {
               <Badge tone="brand">Phase 4</Badge>
               <Badge tone="pos">In-app + web push</Badge>
             </div>
-            <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-app">Thông báo hệ thống</h2>
+            <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-app">{t.adminBilling.notifTitle}</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
-              Soạn thông báo vận hành, xem trước đối tượng nhận, gửi ngay qua in-app và web push, sau đó theo dõi log gửi.
+              {t.adminBilling.notifDescription}
             </p>
           </div>
           <Button variant="secondary" onClick={() => void loadCampaigns()} disabled={loadingCampaigns || busy}>
-            <RefreshCw size={16} className={loadingCampaigns ? 'animate-spin' : undefined} /> Làm mới
+            <RefreshCw size={16} className={loadingCampaigns ? 'animate-spin' : undefined} /> {t.adminBilling.refresh}
           </Button>
         </div>
         <div className="mt-5 grid gap-2 sm:grid-cols-3">
-          <StatusPill label="Chiến dịch" value={String(campaigns.length)} tone="brand" />
-          <StatusPill label="Đã gửi" value={String(sentCount)} tone="pos" />
-          <StatusPill label="Push lỗi" value={String(failedPush)} tone={failedPush > 0 ? 'muted' : 'pos'} />
+          <StatusPill label={t.adminBilling.pillCampaigns} value={String(campaigns.length)} tone="brand" />
+          <StatusPill label={t.adminBilling.sent} value={String(sentCount)} tone="pos" />
+          <StatusPill label={t.adminBilling.pillPushFailed} value={String(failedPush)} tone={failedPush > 0 ? 'muted' : 'pos'} />
         </div>
       </Card>
 
@@ -175,41 +181,41 @@ export function ConsoleNotificationsPage() {
               <BellRing size={20} />
             </span>
             <div>
-              <h3 className="font-bold text-app">Soạn thông báo</h3>
-              <p className="text-xs text-muted">MVP gửi ngay, toàn hệ thống cần xác nhận.</p>
+              <h3 className="font-bold text-app">{t.adminBilling.composeTitle}</h3>
+              <p className="text-xs text-muted">{t.adminBilling.composeDescription}</p>
             </div>
           </div>
 
           <div className="mt-4 grid gap-3">
             <label className="block space-y-1.5">
-              <span className="text-[13px] font-semibold text-muted">Tiêu đề</span>
-              <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Bảo trì hệ thống" />
+              <span className="text-[13px] font-semibold text-muted">{t.adminBilling.labelNotifTitle}</span>
+              <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={t.adminBilling.notifTitlePlaceholder} />
             </label>
             <label className="block space-y-1.5">
-              <span className="text-[13px] font-semibold text-muted">Nội dung</span>
+              <span className="text-[13px] font-semibold text-muted">{t.adminBilling.labelNotifBody}</span>
               <textarea
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
                 rows={4}
                 className="w-full rounded-xl border border-[var(--border)] surface-sunken px-3.5 py-3 text-sm text-app outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
-                placeholder="Splitz sẽ bảo trì lúc 22:00..."
+                placeholder={t.adminBilling.notifBodyPlaceholder}
               />
             </label>
             <label className="block space-y-1.5">
-              <span className="text-[13px] font-semibold text-muted">Đường dẫn khi bấm</span>
+              <span className="text-[13px] font-semibold text-muted">{t.adminBilling.labelHref}</span>
               <Input value={href} onChange={(event) => setHref(event.target.value)} placeholder="/notifications" />
             </label>
             <label className="block space-y-1.5">
-              <span className="text-[13px] font-semibold text-muted">Đối tượng nhận</span>
+              <span className="text-[13px] font-semibold text-muted">{t.adminBilling.labelTarget}</span>
               <Segmented options={TARGET_OPTIONS} value={targetType} onChange={setTargetType} />
             </label>
             {(targetType === 'user' || targetType === 'group') && (
               <label className="block space-y-1.5">
-                <span className="text-[13px] font-semibold text-muted">{targetType === 'user' ? 'Email user' : 'Group id'}</span>
+                <span className="text-[13px] font-semibold text-muted">{targetType === 'user' ? t.adminBilling.labelTargetUserEmail : t.adminBilling.labelTargetGroupId}</span>
                 <Input
                   value={targetValue}
                   onChange={(event) => setTargetValue(event.target.value)}
-                  placeholder={targetType === 'user' ? 'user@example.com' : 'UUID nhóm'}
+                  placeholder={targetType === 'user' ? 'user@example.com' : t.adminBilling.targetGroupPlaceholder}
                 />
               </label>
             )}
@@ -222,17 +228,17 @@ export function ConsoleNotificationsPage() {
 
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <Button variant="secondary" onClick={() => void onPreview()} disabled={busy}>
-              {busy ? <Loader2 size={16} className="animate-spin" /> : <ShieldAlert size={16} />} Xem trước đối tượng
+              {busy ? <Loader2 size={16} className="animate-spin" /> : <ShieldAlert size={16} />} {t.adminBilling.previewTargetButton}
             </Button>
             <Button onClick={() => void onSendNow()} disabled={busy}>
-              {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} Gửi ngay
+              {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} {t.adminBilling.sendNowButton}
             </Button>
           </div>
 
           {preview && (
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            <StatusPill label="User nhận" value={String(preview.targetCount)} tone="brand" />
-            <StatusPill label="Thiết bị nhận push" value={String(preview.pushSubscriberCount)} tone="pos" />
+            <StatusPill label={t.adminBilling.pillReceivers} value={String(preview.targetCount)} tone="brand" />
+            <StatusPill label={t.adminBilling.pillPushDevices} value={String(preview.pushSubscriberCount)} tone="pos" />
             </div>
           )}
           {notice && <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-semibold text-app">{notice}</p>}
@@ -246,9 +252,9 @@ export function ConsoleNotificationsPage() {
                 <Bell size={18} />
               </span>
               <div className="min-w-0">
-                <p className="font-extrabold text-app">{title.trim() || 'Tiêu đề thông báo'}</p>
-                <p className="mt-1 text-sm leading-6 text-muted">{body.trim() || 'Nội dung thông báo sẽ hiển thị tại đây.'}</p>
-                <p className="mt-2 text-xs font-semibold text-faint">{TARGET_LABEL[targetType]} · {channels.inApp ? 'in-app' : ''}{channels.inApp && channels.webPush ? ' + ' : ''}{channels.webPush ? 'web push' : ''}</p>
+                <p className="font-extrabold text-app">{title.trim() || t.adminBilling.notifTitleFallback}</p>
+                <p className="mt-1 text-sm leading-6 text-muted">{body.trim() || t.adminBilling.notifBodyFallback}</p>
+                <p className="mt-2 text-xs font-semibold text-faint">{targetLabel(targetType)} · {channels.inApp ? 'in-app' : ''}{channels.inApp && channels.webPush ? ' + ' : ''}{channels.webPush ? 'web push' : ''}</p>
               </div>
             </div>
           </div>
@@ -263,7 +269,7 @@ export function ConsoleNotificationsPage() {
                 {[0, 1, 2].map((item) => <div key={item} className="h-20 animate-pulse rounded-2xl bg-[var(--surface-2)]" />)}
               </div>
             ) : campaigns.length === 0 ? (
-              <EmptyState icon={<Bell size={28} />} title="Chưa có campaign" description="Gửi thông báo đầu tiên để bắt đầu ghi delivery log." />
+              <EmptyState icon={<Bell size={28} />} title={t.adminBilling.noCampaignsTitle} description={t.adminBilling.noCampaignsDescription} />
             ) : (
               <div className="divide-y divide-[var(--border)]">
                 {campaigns.map((campaign) => (
@@ -275,9 +281,9 @@ export function ConsoleNotificationsPage() {
                   >
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-extrabold text-app">{campaign.title}</span>
-                      <span className="mt-0.5 block truncate text-xs text-muted">{TARGET_LABEL[campaign.targetType]} · {formatDate(campaign.createdAt)}</span>
+                      <span className="mt-0.5 block truncate text-xs text-muted">{targetLabel(campaign.targetType)} · {formatDate(campaign.createdAt)}</span>
                     </span>
-                    <span className="text-sm font-bold text-app">{campaign.targetCount} user</span>
+                    <span className="text-sm font-bold text-app">{t.adminBilling.targetUsersCount({ n: campaign.targetCount })}</span>
                     <span className="text-sm font-extrabold text-app">{campaign.pushSent}/{campaign.pushFailed}</span>
                     <span className="lg:justify-self-end"><NotificationStatusBadge status={campaign.status} /></span>
                   </button>
@@ -302,14 +308,15 @@ function DeliveryPanel({
   deliveries: AdminNotificationDelivery[]
   loading: boolean
 }) {
+  const t = useT()
   if (!campaign) {
     return (
       <aside className="card h-fit p-5 text-center xl:sticky xl:top-6">
         <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl surface-sunken text-brand-600 dark:text-brand-300">
           <Bell size={20} />
         </div>
-        <p className="mt-3 font-bold text-app">Chưa chọn campaign</p>
-                <p className="mt-1 text-sm leading-6 text-muted">Chọn một chiến dịch để xem log gửi.</p>
+        <p className="mt-3 font-bold text-app">{t.adminBilling.noCampaignSelectedTitle}</p>
+                <p className="mt-1 text-sm leading-6 text-muted">{t.adminBilling.noCampaignSelectedDescription}</p>
       </aside>
     )
   }
@@ -318,32 +325,32 @@ function DeliveryPanel({
     <aside className="card h-fit p-5 xl:sticky xl:top-6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-faint">Log gửi</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-faint">{t.adminBilling.deliveryLogLabel}</p>
           <h3 className="mt-1 truncate text-lg font-extrabold text-app">{campaign.title}</h3>
         </div>
         <NotificationStatusBadge status={campaign.status} />
       </div>
 
       <div className="mt-4 grid gap-2 text-sm">
-        <MetaRow label="Đối tượng" value={TARGET_LABEL[campaign.targetType]} />
+        <MetaRow label={t.adminBilling.labelAudience} value={targetLabel(campaign.targetType)} />
         <MetaRow label="In-app" value={String(campaign.inAppSent)} />
-        <MetaRow label="Push" value={`${campaign.pushSent} đã gửi / ${campaign.pushFailed} lỗi`} />
+        <MetaRow label="Push" value={t.adminBilling.pushSummary({ sent: campaign.pushSent, failed: campaign.pushFailed })} />
       </div>
 
       <div className="mt-5">
-        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-faint">Gần đây</p>
+        <p className="mb-2 text-xs font-bold uppercase tracking-wider text-faint">{t.adminBilling.recentLabel}</p>
         {loading && deliveries.length === 0 ? (
           <div className="space-y-2">
             {[0, 1].map((item) => <div key={item} className="h-16 animate-pulse rounded-2xl bg-[var(--surface-2)]" />)}
           </div>
         ) : deliveries.length === 0 ? (
-          <p className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm text-muted">Chưa có delivery.</p>
+          <p className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm text-muted">{t.adminBilling.noDeliveries}</p>
         ) : (
           <div className="space-y-2">
             {deliveries.map((item) => (
               <div key={item.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-sm font-bold text-app">{item.userEmail ?? item.userId ?? 'Chưa rõ user'}</p>
+                  <p className="truncate text-sm font-bold text-app">{item.userEmail ?? item.userId ?? t.adminBilling.unknownUser}</p>
                   <DeliveryStatusBadge status={item.status} />
                 </div>
                 <p className="mt-0.5 text-xs text-muted">{CHANNEL_LABEL[item.channel]} · {item.sentAt ? formatDate(item.sentAt) : formatDate(item.createdAt)}</p>
@@ -358,6 +365,7 @@ function DeliveryPanel({
 }
 
 function ChannelToggle({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  const t = useT()
   return (
     <button
       type="button"
@@ -365,7 +373,7 @@ function ChannelToggle({ label, active, onClick }: { label: string; active: bool
       className={`press rounded-2xl border px-3 py-3 text-left transition ${active ? 'border-brand-400/40 bg-brand-500/10' : 'border-[var(--border)] bg-[var(--surface-2)]'}`}
     >
       <span className="block text-sm font-extrabold text-app">{label}</span>
-      <span className="mt-0.5 block text-xs font-semibold text-muted">{active ? 'Bật' : 'Tắt'}</span>
+      <span className="mt-0.5 block text-xs font-semibold text-muted">{active ? t.adminBilling.on : t.adminBilling.off}</span>
     </button>
   )
 }
@@ -390,44 +398,42 @@ function StatusPill({ label, value, tone }: { label: string; value: string; tone
 
 function NotificationStatusBadge({ status }: { status: AdminNotificationStatus }) {
   const tone = status === 'sent' ? 'pos' : status === 'failed' ? 'neg' : 'muted'
-  return <Badge tone={tone}>{STATUS_LABEL[status]}</Badge>
+  return <Badge tone={tone}>{notificationStatusLabel(status)}</Badge>
 }
 
 function DeliveryStatusBadge({ status }: { status: AdminNotificationDeliveryStatus }) {
   const tone = status === 'sent' ? 'pos' : status === 'failed' ? 'neg' : 'muted'
-  return <Badge tone={tone}>{DELIVERY_STATUS_LABEL[status]}</Badge>
+  return <Badge tone={tone}>{deliveryStatusLabel(status)}</Badge>
 }
 
 function formatDate(value: string) {
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : DATE_FORMAT.format(date)
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat(getIntlLocale(), { dateStyle: 'short', timeStyle: 'short' }).format(date)
 }
 
-const TARGET_LABEL: Record<AdminNotificationTargetType, string> = {
-  all: 'Tất cả user',
-  free: 'User Free',
-  premium: 'User Premium',
-  user: 'User cụ thể',
-  group: 'Nhóm cụ thể',
+function targetLabel(targetType: AdminNotificationTargetType) {
+  const a = t().adminBilling
+  if (targetType === 'all') return a.targetAllUsers
+  if (targetType === 'free') return a.targetFreeUsers
+  if (targetType === 'premium') return a.targetPremiumUsers
+  if (targetType === 'user') return a.targetSpecificUser
+  return a.targetSpecificGroup
 }
 
-const CHANNEL_LABEL: Record<AdminNotificationChannel, string> = {
-  in_app: 'in-app',
-  web_push: 'web push',
+function notificationStatusLabel(status: AdminNotificationStatus) {
+  const a = t().adminBilling
+  if (status === 'draft') return a.notifStatusDraft
+  if (status === 'scheduled') return a.notifStatusScheduled
+  if (status === 'sending') return a.notifStatusSending
+  if (status === 'sent') return a.sent
+  if (status === 'failed') return a.notifStatusFailed
+  return a.notifStatusCancelled
 }
 
-const STATUS_LABEL: Record<AdminNotificationStatus, string> = {
-  draft: 'Nháp',
-  scheduled: 'Đã lên lịch',
-  sending: 'Đang gửi',
-  sent: 'Đã gửi',
-  failed: 'Thất bại',
-  cancelled: 'Đã huỷ',
-}
-
-const DELIVERY_STATUS_LABEL: Record<AdminNotificationDeliveryStatus, string> = {
-  pending: 'Đang chờ',
-  sent: 'Đã gửi',
-  failed: 'Thất bại',
-  skipped: 'Đã bỏ qua',
+function deliveryStatusLabel(status: AdminNotificationDeliveryStatus) {
+  const a = t().adminBilling
+  if (status === 'pending') return a.pending
+  if (status === 'sent') return a.sent
+  if (status === 'failed') return a.notifStatusFailed
+  return a.deliverySkipped
 }

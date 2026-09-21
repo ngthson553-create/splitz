@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Download, X } from 'lucide-react'
 import { spring } from '../lib/motion'
+import { useT } from '../lib/i18n'
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -13,6 +14,7 @@ const DISMISS_KEY = 'splitz.install.dismissed'
 export function InstallPrompt() {
   const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null)
   const [visible, setVisible] = useState(false)
+  const t = useT()
 
   useEffect(() => {
     if (localStorage.getItem(DISMISS_KEY) === '1') return
@@ -55,19 +57,19 @@ export function InstallPrompt() {
               <Download size={18} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="font-bold text-sm">Cài Splitz vào màn hình chính</p>
-              <p className="text-xs text-muted">Mở nhanh như app, dùng được khi offline.</p>
+              <p className="font-bold text-sm">{t.common.installTitle}</p>
+              <p className="text-xs text-muted">{t.common.installSubtitle}</p>
             </div>
             <button
               onClick={install}
               className="press gradient-brand text-white font-semibold text-sm rounded-xl h-9 px-3.5 shadow-soft shrink-0"
             >
-              Cài
+              {t.common.installAction}
             </button>
             <button
               onClick={dismiss}
               className="press grid place-items-center h-8 w-8 rounded-lg text-faint hover:text-app shrink-0"
-              aria-label="Bỏ qua"
+              aria-label={t.common.skip}
             >
               <X size={16} />
             </button>

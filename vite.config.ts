@@ -38,6 +38,10 @@ export default defineConfig(({ mode }) => ({
       manifest: false, // dùng public/manifest.webmanifest tự viết
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // KHÔNG precache cấu hình runtime: Docker entrypoint ghi đè file này lúc
+        // container khởi động — precache kèm content-hash sẽ đông băng cấu hình
+        // của lần build. File nhỏ, thêm <script> blocking mỗi navigation là ổn.
+        globIgnores: ['runtime-config.js'],
         navigateFallback: '/index.html',
         // Nhúng handler Web Push (push/notificationclick) vào SW do Workbox sinh ra,
         // để /sw.js có CẢ precache caching LẪN push (trước đây generateSW đè mất push).

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Bell, CheckCircle2, FileText, Loader2, Megaphone, RefreshCw, Save, Send, XCircle } from 'lucide-react'
 import { Badge, Button, Card, EmptyState, Field, Input, Segmented } from '../../components/ui'
+import { useT, type Dict } from '../../lib/i18n'
+import { getIntlLocale } from '../../lib/i18n/locale'
 import {
   cancelAdminRelease,
   loadAdminReleasesSnapshot,
@@ -12,25 +14,24 @@ import {
   type AdminReleasesSnapshot,
 } from '../../lib/adminReleases'
 
-const DATE_FORMAT = new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' })
-const NUMBER_FORMAT = new Intl.NumberFormat('vi-VN')
-
-const AUDIENCE_OPTIONS: { value: AdminReleaseAudience; label: string }[] = [
-  { value: 'all', label: 'Tất cả' },
-  { value: 'free', label: 'Free' },
-  { value: 'premium', label: 'Premium' },
-]
-
-const STATUS_LABEL: Record<AdminReleaseStatus, string> = {
-  draft: 'Nháp',
-  published: 'Đã xuất bản',
-  cancelled: 'Đã hủy',
+function numberFmt() {
+  return new Intl.NumberFormat(getIntlLocale())
 }
 
-const AUDIENCE_LABEL: Record<AdminReleaseAudience, string> = {
-  all: 'Tất cả user',
-  free: 'User Free',
-  premium: 'User Premium',
+function statusLabel(t: Dict): Record<AdminReleaseStatus, string> {
+  return {
+    draft: t.adminOps.releases.statusDraft,
+    published: t.adminOps.releases.statusPublished,
+    cancelled: t.adminOps.releases.statusCancelled,
+  }
+}
+
+function audienceLabel(t: Dict): Record<AdminReleaseAudience, string> {
+  return {
+    all: t.adminOps.releases.audienceAllUsers,
+    free: t.adminOps.releases.audienceFreeUsers,
+    premium: t.adminOps.releases.audiencePremiumUsers,
+  }
 }
 
 type DraftState = {
@@ -63,6 +64,7 @@ function draftFromRelease(release: AdminReleaseNote): DraftState {
 }
 
 export function ConsoleReleasesPage() {
+  const t = useT()
   const [snapshot, setSnapshot] = useState<AdminReleasesSnapshot | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -81,10 +83,10 @@ export function ConsoleReleasesPage() {
       if (nextSelected?.status === 'draft') setDraft(draftFromRelease(nextSelected))
       setNotice(null)
     } else {
-      setNotice('Không tải được release notes. Kiểm tra quyền admin hoặc Edge Function admin-releases.')
+      setNotice(t.adminOps.releases.loadFailed)
     }
     setLoading(false)
-  }, [])
+  }, [t])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -98,10 +100,15 @@ export function ConsoleReleasesPage() {
     () => releases.find((release) => release.id === selectedId) ?? releases.find((release) => release.status === 'draft') ?? releases[0] ?? null,
     [releases, selectedId],
   )
+  const audienceOptions: { value: AdminReleaseAudience; label: string }[] = [
+    { value: 'all', label: t.adminOps.releases.audienceAll },
+    { value: 'free', label: 'Free' },
+    { value: 'premium', label: 'Premium' },
+  ]
 
   function approvalReady() {
     if (!reason.trim()) {
-      setNotice('Cần nhập lý do để ghi audit.')
+      setNotice(t.adminOps.releases.reasonRequired)
       return false
     }
     return true
@@ -126,51 +133,51 @@ export function ConsoleReleasesPage() {
   async function onSaveDraft() {
     if (!approvalReady()) return
     if (!draft.version.trim() || !draft.title.trim() || !draft.body.trim()) {
-      setNotice('Cần nhập version, tiêu đề và nội dung release note.')
+      setNotice(t.adminOps.releases.draftFieldsRequired)
       return
     }
     setBusy(true)
     const releaseId = await saveAdminReleaseDraft(undefined, { ...draft, reason })
     if (releaseId) {
-      setNotice('Đã lưu draft release note và ghi audit.')
+      setNotice(t.adminOps.releases.draftSaved)
       setSelectedId(releaseId)
       setReason('')
       await loadSnapshot()
     } else {
-      setNotice('Không lưu được draft. Kiểm tra version trùng hoặc quyền admin.')
+      setNotice(t.adminOps.releases.draftSaveFailed)
     }
     setBusy(false)
   }
 
   async function onPublish() {
     if (!draft.releaseId || !approvalReady()) return
-    const ok = window.confirm('Publish release note và gửi in-app announcement tới audience đã chọn?')
+    const ok = window.confirm(t.adminOps.releases.publishConfirm)
     if (!ok) return
     setBusy(true)
     const result = await publishAdminRelease(undefined, { releaseId: draft.releaseId, reason })
     if (result) {
-      setNotice(`Đã publish release và gửi ${NUMBER_FORMAT.format(result.inAppSent)} in-app announcement.`)
+      setNotice(t.adminOps.releases.published({ n: result.inAppSent }))
       setReason('')
       await loadSnapshot()
     } else {
-      setNotice('Không publish được release. Chỉ draft mới được publish.')
+      setNotice(t.adminOps.releases.publishFailed)
     }
     setBusy(false)
   }
 
   async function onCancel() {
     if (!draft.releaseId || !approvalReady()) return
-    const ok = window.confirm('Hủy draft release note này? Published release không thể hủy bằng action MVP.')
+    const ok = window.confirm(t.adminOps.releases.cancelConfirm)
     if (!ok) return
     setBusy(true)
     const cancelled = await cancelAdminRelease(undefined, { releaseId: draft.releaseId, reason })
     if (cancelled) {
-      setNotice('Đã hủy draft release note và ghi audit.')
+      setNotice(t.adminOps.releases.cancelled)
       setReason('')
       setDraft(EMPTY_DRAFT)
       await loadSnapshot()
     } else {
-      setNotice('Không hủy được release note. Kiểm tra trạng thái hoặc quyền admin.')
+      setNotice(t.adminOps.releases.cancelFailed)
     }
     setBusy(false)
   }
@@ -182,23 +189,23 @@ export function ConsoleReleasesPage() {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="brand">Phase 11</Badge>
-              <Badge tone="pos">Thông báo trong app</Badge>
+              <Badge tone="pos">{t.adminOps.releases.badgeInApp}</Badge>
             </div>
-            <h2 className="mt-2 text-2xl font-extrabold text-app lg:text-3xl">Thông báo phiên bản</h2>
+            <h2 className="mt-2 text-2xl font-extrabold text-app lg:text-3xl">{t.adminOps.releases.title}</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
-              Soạn release note, preview announcement và publish vào tab Hệ thống của thông báo người dùng qua pipeline admin có audit.
+              {t.adminOps.releases.description}
             </p>
           </div>
           <Button variant="secondary" onClick={() => void loadSnapshot()} disabled={loading || busy}>
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Làm mới
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} {t.adminOps.shared.refresh}
           </Button>
         </div>
 
         <div className="mt-5 grid gap-2 sm:grid-cols-4">
-          <SummaryPill label="Tổng" value={NUMBER_FORMAT.format(snapshot?.summary.total ?? 0)} tone="brand" />
-          <SummaryPill label="Nháp" value={NUMBER_FORMAT.format(snapshot?.summary.draft ?? 0)} tone="muted" />
-          <SummaryPill label="Đã xuất bản" value={NUMBER_FORMAT.format(snapshot?.summary.published ?? 0)} tone="pos" />
-          <SummaryPill label="Đã hủy" value={NUMBER_FORMAT.format(snapshot?.summary.cancelled ?? 0)} tone="neg" />
+          <SummaryPill label={t.adminOps.releases.labelTotal} value={numberFmt().format(snapshot?.summary.total ?? 0)} tone="brand" />
+          <SummaryPill label={t.adminOps.releases.labelDraft} value={numberFmt().format(snapshot?.summary.draft ?? 0)} tone="muted" />
+          <SummaryPill label={t.adminOps.releases.labelPublished} value={numberFmt().format(snapshot?.summary.published ?? 0)} tone="pos" />
+          <SummaryPill label={t.adminOps.releases.labelCancelled} value={numberFmt().format(snapshot?.summary.cancelled ?? 0)} tone="neg" />
         </div>
         {notice && <p className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-semibold text-app">{notice}</p>}
       </Card>
@@ -211,50 +218,50 @@ export function ConsoleReleasesPage() {
                 <FileText size={20} />
               </span>
               <div>
-                <h3 className="font-extrabold text-app">Trình soạn nháp</h3>
-                <p className="text-xs text-muted">Lưu nháp trước, xuất bản sau khi xem trước ổn.</p>
+                <h3 className="font-extrabold text-app">{t.adminOps.releases.editorTitle}</h3>
+                <p className="text-xs text-muted">{t.adminOps.releases.editorSubtitle}</p>
               </div>
             </div>
-            <Button variant="secondary" onClick={newDraft} disabled={busy}>Nháp mới</Button>
+            <Button variant="secondary" onClick={newDraft} disabled={busy}>{t.adminOps.releases.newDraft}</Button>
           </div>
 
           <div className="mt-5 grid gap-3 lg:grid-cols-2">
             <Field label="Version">
               <Input value={draft.version} onChange={(event) => updateDraft('version', event.target.value)} placeholder="1.3.0" />
             </Field>
-            <Field label="Đối tượng">
-              <Segmented options={AUDIENCE_OPTIONS} value={draft.audience} onChange={(value) => updateDraft('audience', value)} />
+            <Field label={t.adminOps.releases.labelAudience}>
+              <Segmented options={audienceOptions} value={draft.audience} onChange={(value) => updateDraft('audience', value)} />
             </Field>
-            <Field label="Tiêu đề">
+            <Field label={t.adminOps.releases.labelTitle}>
               <Input value={draft.title} onChange={(event) => updateDraft('title', event.target.value)} placeholder="Splitz 1.3.0" />
             </Field>
             <Field label="Href">
               <Input value={draft.href} onChange={(event) => updateDraft('href', event.target.value)} placeholder="/notifications" />
             </Field>
             <label className="block space-y-1.5 lg:col-span-2">
-              <span className="text-[13px] font-semibold text-muted">Nội dung</span>
+              <span className="text-[13px] font-semibold text-muted">{t.adminOps.releases.labelBody}</span>
               <textarea
                 value={draft.body}
                 onChange={(event) => updateDraft('body', event.target.value)}
                 rows={7}
                 className="w-full rounded-xl border border-[var(--border)] surface-sunken px-3.5 py-3 text-sm leading-6 text-app outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
-                placeholder="Tóm tắt điểm mới, sửa lỗi và thay đổi quan trọng."
+                placeholder={t.adminOps.releases.bodyPlaceholder}
               />
             </label>
-            <Field label="Lý do audit">
-              <Input value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Ví dụ: Chuẩn bị release tháng 6" />
+            <Field label={t.adminOps.releases.labelReason}>
+              <Input value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t.adminOps.releases.reasonPlaceholder} />
             </Field>
           </div>
 
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <Button variant="secondary" onClick={() => void onSaveDraft()} disabled={busy || loading}>
-              {busy ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Lưu nháp
+              {busy ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {t.adminOps.releases.saveDraft}
             </Button>
             <Button onClick={() => void onPublish()} disabled={busy || !draft.releaseId}>
-              {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} Xuất bản
+              {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} {t.adminOps.releases.publish}
             </Button>
             <Button variant="danger" onClick={() => void onCancel()} disabled={busy || !draft.releaseId}>
-              <XCircle size={16} /> Hủy
+              <XCircle size={16} /> {t.adminOps.releases.cancel}
             </Button>
           </div>
         </Card>
@@ -265,8 +272,8 @@ export function ConsoleReleasesPage() {
               <Megaphone size={20} />
             </span>
             <div>
-              <h3 className="font-extrabold text-app">Xem trước trong app</h3>
-              <p className="text-xs text-muted">Mẫu user sẽ thấy trong tab Hệ thống.</p>
+              <h3 className="font-extrabold text-app">{t.adminOps.releases.previewTitle}</h3>
+              <p className="text-xs text-muted">{t.adminOps.releases.previewSubtitle}</p>
             </div>
           </div>
 
@@ -278,18 +285,18 @@ export function ConsoleReleasesPage() {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone="brand">{draft.version || 'version'}</Badge>
-                  <Badge tone="muted">{AUDIENCE_LABEL[draft.audience]}</Badge>
+                  <Badge tone="muted">{audienceLabel(t)[draft.audience]}</Badge>
                 </div>
-                <p className="mt-3 font-extrabold text-app">{draft.title || 'Tiêu đề thông báo phiên bản'}</p>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{draft.body || 'Nội dung thông báo phiên bản sẽ hiển thị ở đây.'}</p>
+                <p className="mt-3 font-extrabold text-app">{draft.title || t.adminOps.releases.previewTitlePlaceholder}</p>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{draft.body || t.adminOps.releases.previewBodyPlaceholder}</p>
                 <p className="mt-3 text-xs font-semibold text-faint">{draft.href || '/notifications'}</p>
               </div>
             </div>
           </div>
 
           <div className="mt-4 space-y-2">
-            <MetaRow label="Nháp đang chọn" value={draft.releaseId ?? 'Nháp mới'} />
-            <MetaRow label="Đã kiểm tra" value={snapshot ? formatDate(snapshot.checkedAt) : 'Đang tải'} />
+            <MetaRow label={t.adminOps.releases.selectedDraft} value={draft.releaseId ?? t.adminOps.releases.newDraft} />
+            <MetaRow label={t.adminOps.shared.labelChecked} value={snapshot ? formatDate(snapshot.checkedAt) : t.adminOps.releases.loading} />
           </div>
         </Card>
       </div>
@@ -301,7 +308,7 @@ export function ConsoleReleasesPage() {
               {[0, 1, 2].map((item) => <div key={item} className="h-20 animate-pulse rounded-2xl bg-[var(--surface-2)]" />)}
             </div>
           ) : releases.length === 0 ? (
-            <EmptyState icon={<FileText size={28} />} title="Chưa có release note" description="Tạo draft đầu tiên để bắt đầu lịch sử release." />
+            <EmptyState icon={<FileText size={28} />} title={t.adminOps.releases.emptyTitle} description={t.adminOps.releases.emptyDescription} />
           ) : (
             <div className="divide-y divide-[var(--border)]">
               {releases.map((release) => (
@@ -312,10 +319,10 @@ export function ConsoleReleasesPage() {
         </Card>
 
         <Card className="p-5">
-          <h3 className="font-extrabold text-app">Audit thông báo phiên bản gần đây</h3>
+          <h3 className="font-extrabold text-app">{t.adminOps.releases.recentAuditTitle}</h3>
           <div className="mt-4 space-y-3">
             {(snapshot?.recentChanges ?? []).length === 0 ? (
-              <p className="text-sm text-muted">Chưa có audit release gần đây.</p>
+              <p className="text-sm text-muted">{t.adminOps.releases.noRecentAudit}</p>
             ) : snapshot?.recentChanges.map((change) => (
               <div key={change.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3">
                 <p className="text-sm font-extrabold text-app">{change.action}</p>
@@ -330,6 +337,7 @@ export function ConsoleReleasesPage() {
 }
 
 function ReleaseRow({ release, active, onSelect }: { release: AdminReleaseNote; active: boolean; onSelect: () => void }) {
+  const t = useT()
   return (
     <button
       type="button"
@@ -344,16 +352,18 @@ function ReleaseRow({ release, active, onSelect }: { release: AdminReleaseNote; 
         <span className="mt-1 block truncate text-xs text-muted">{release.body}</span>
       </span>
       <ReleaseStatusBadge status={release.status} />
-      <span className="text-sm font-bold text-app">{AUDIENCE_LABEL[release.audience]}</span>
+      <span className="text-sm font-bold text-app">{audienceLabel(t)[release.audience]}</span>
       <span className="text-xs font-semibold text-muted">{release.publishedAt ? formatDate(release.publishedAt) : formatDate(release.updatedAt)}</span>
     </button>
   )
 }
 
 function ReleaseStatusBadge({ status }: { status: AdminReleaseStatus }) {
-  if (status === 'published') return <Badge tone="pos"><CheckCircle2 size={13} />{STATUS_LABEL[status]}</Badge>
-  if (status === 'cancelled') return <Badge tone="neg"><XCircle size={13} />{STATUS_LABEL[status]}</Badge>
-  return <Badge tone="muted">{STATUS_LABEL[status]}</Badge>
+  const t = useT()
+  const labels = statusLabel(t)
+  if (status === 'published') return <Badge tone="pos"><CheckCircle2 size={13} />{labels[status]}</Badge>
+  if (status === 'cancelled') return <Badge tone="neg"><XCircle size={13} />{labels[status]}</Badge>
+  return <Badge tone="muted">{labels[status]}</Badge>
 }
 
 function SummaryPill({ label, value, tone }: { label: string; value: string; tone: 'brand' | 'pos' | 'neg' | 'muted' }) {
@@ -383,5 +393,5 @@ function MetaRow({ label, value }: { label: string; value: string }) {
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '-'
-  return DATE_FORMAT.format(new Date(value))
+  return new Intl.DateTimeFormat(getIntlLocale(), { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value))
 }

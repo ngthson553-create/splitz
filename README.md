@@ -16,13 +16,13 @@ Works offline · No account required · 5 ways to split · 62 Vietnamese banks
 
 | Record an expense | Who owes whom | Settle with VietQR |
 |:---:|:---:|:---:|
-| ![Recording an expense in Splitz](docs/screenshots/expense.png) | ![Who owes whom after a trip](docs/screenshots/settle.png) | ![Settling a debt with a VietQR code](docs/screenshots/qr.png) |
+| ![Recording an expense in Splitz](docs/screenshots/en/expense.png) | ![Who owes whom after a trip](docs/screenshots/en/settle.png) | ![Settling a debt with a VietQR code](docs/screenshots/en/qr.png) |
 
 **Three themes**, including **Prestige** — the black-and-gold look reserved for Premium:
 
 | Light | Dark | Prestige |
 |:---:|:---:|:---:|
-| ![Splitz light theme](docs/screenshots/theme-light.png) | ![Splitz dark theme](docs/screenshots/theme-dark.png) | ![Splitz Prestige theme](docs/screenshots/theme-prestige.png) |
+| ![Splitz light theme](docs/screenshots/en/theme-light.png) | ![Splitz dark theme](docs/screenshots/en/theme-dark.png) | ![Splitz Prestige theme](docs/screenshots/en/theme-prestige.png) |
 
 A trip, a shared flat, a team lunch — one person pays, everyone else owes their
 share, and at the end somebody has to work out who transfers what to whom.
@@ -57,6 +57,8 @@ BIN codes, names and logos for 62 banks.
 > in the user's banking app.
 
 ## Features
+
+The UI is **bilingual Vietnamese/English** — auto-detected from the browser, switchable in Settings → Language.
 
 **Splitting and settlement**
 
@@ -258,6 +260,24 @@ provided by `public/_redirects`).
 
 Set `VITE_SITE_URL` and any optional `VITE_*` variables in the host's build
 environment before the first deploy.
+
+## Self-hosting with Docker
+
+A public image is published to GHCR — running it in local mode (no backend)
+is a single command:
+
+```bash
+docker run -d -p 8080:80 ghcr.io/ngthson553-create/splitz:latest
+```
+
+To bring your own backend (sign-in, sync, storage, edge functions) on a VPS,
+`docker-compose.supabase.yml` stands up Postgres 17 + GoTrue + PostgREST +
+Storage + Kong with all 34 migrations applied automatically, plus email +
+password sign-in that needs no Google Cloud project. Full guide:
+[docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
+
+The image is reconfigurable at runtime through container env vars (`SPLITZ_*`)
+— no rebuild needed when you change Supabase or the domain.
 
 ## Status and roadmap
 

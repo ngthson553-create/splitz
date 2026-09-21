@@ -1,0 +1,55 @@
+# Kong DB-less — định tuyến API self-host (docker-compose.supabase.yml).
+#
+# QUAN TRỌNG: service url CHỈ host:port, KHÔNG kèm path. Prefix (/auth/v1,
+# /rest/v1, ...) do route strip_path bỏ đi; nếu kèm path ở url, Kong sẽ ghép
+# CHỒNG path (vd /auth/v1/health → service nhận /auth/v1/auth/v1/health) mà
+# GoTrue/Storage phục vụ ở gốc → 404.
+_format_version: "2.1"
+_transform: true
+
+services:
+  # ── Auth (GoTrue) — phục vụ /token, /signup, /health… ở gốc ──
+  - name: auth-v1
+    url: http://auth:9999
+    routes:
+      - name: auth-v1-all
+        strip_path: true
+        paths:
+          - /auth/v1
+    plugins:
+      - name: cors
+
+  # ── REST (PostgREST) — phục vụ ở gốc (/profiles, /rpc/… ) ──
+  - name: rest-v1
+    url: http://rest:3000
+    routes:
+      - name: rest-v1-all
+        strip_path: true
+        paths:
+          - /rest/v1
+    plugins:
+      - name: cors
+
+  # ── Storage — phục vụ /status, /object/… ở gốc ──
+  - name: storage-v1
+    url: http://storage:8000
+    routes:
+      - name: storage-v1-all
+        strip_path: true
+        paths:
+          - /storage/v1
+    plugins:
+      - name: cors
+
+  # ── Edge Functions — main service nhận /<tên-function> sau khi strip
+  #    /functions/v1 rồi dispatch theo đoạn đầu path
+  #    (xem docker/functions-runtime/main/index.ts) ──
+  - name: functions-v1
+    url: http://functions:9000
+    routes:
+      - name: functions-v1-all
+        strip_path: true
+        paths:
+          - /functions/v1
+    plugins:
+      - name: cors

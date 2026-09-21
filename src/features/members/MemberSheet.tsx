@@ -4,6 +4,7 @@ import { Sheet } from '../../components/Sheet'
 import { Avatar, Button, Field, Input } from '../../components/ui'
 import { useStore } from '../../lib/store'
 import { useAuth } from '../../lib/auth'
+import { useT } from '../../lib/i18n'
 import { useConfirm } from '../../components/ConfirmDialog'
 import { useToast } from '../../components/Toast'
 import { BANK_GROUPS, bankDisplayName } from '../../lib/settlement/vietqr'
@@ -22,6 +23,7 @@ export function MemberSheet({
   const { profile } = useAuth()
   const confirm = useConfirm()
   const toast = useToast()
+  const t = useT()
 
   const [name, setName] = useState('')
   const [bankCode, setBankCode] = useState('')
@@ -68,19 +70,18 @@ export function MemberSheet({
 
   async function doTransfer() {
     const ok = await confirm({
-      title: `Chuyển quyền cho ${member!.name}?`,
-      description:
-        'Người này sẽ trở thành chủ nhóm (sửa/xoá nhóm, quản lý thành viên). Bạn sẽ trở thành thành viên thường.',
-      confirmLabel: 'Chuyển quyền',
+      title: t.group.transferOwnershipTitle({ name: member!.name }),
+      description: t.group.transferOwnershipDesc,
+      confirmLabel: t.group.transferOwnership,
       danger: true,
     })
     if (!ok) return
     try {
       await transferOwnership(group.id, member!.id)
-      toast.success('Đã chuyển quyền chủ nhóm')
+      toast.success(t.group.ownershipTransferredToast)
       onClose()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Không chuyển được quyền.')
+      toast.error(e instanceof Error ? e.message : t.group.transferOwnershipError)
     }
   }
 
@@ -88,10 +89,10 @@ export function MemberSheet({
     <Sheet
       open={Boolean(member)}
       onClose={onClose}
-      title="Thông tin thành viên"
+      title={t.group.memberSheetTitle}
       footer={
         <Button fullWidth size="lg" onClick={save}>
-          Lưu
+          {t.common.save}
         </Button>
       }
     >
@@ -100,22 +101,22 @@ export function MemberSheet({
           <Avatar name={name || '?'} color={member.color} src={member.avatarUrl} size="lg" />
           {member.role === 'owner' && (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-500">
-              <Crown size={13} /> Chủ nhóm
+              <Crown size={13} /> {t.group.owner}
             </span>
           )}
           {isReal && member.role !== 'owner' && (
-            <span className="text-xs text-muted">{isMe ? 'Bạn' : 'Đã có tài khoản Splitz'}</span>
+            <span className="text-xs text-muted">{isMe ? t.common.you : t.group.hasSplitzAccount}</span>
           )}
         </div>
 
-        <Field label="Tên">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tên thành viên" />
+        <Field label={t.group.memberNameLabel}>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t.group.memberNamePlaceholder} />
         </Field>
 
         {isReal ? (
           // STK của thành viên thật — chỉ hiển thị, do họ tự quản.
           <div className="pt-1">
-            <p className="text-sm font-semibold text-muted mb-1">Tài khoản nhận tiền</p>
+            <p className="text-sm font-semibold text-muted mb-1">{t.group.payoutAccount}</p>
             <div className="flex items-start gap-2.5 p-3 rounded-2xl surface-sunken">
               <ShieldCheck size={18} className="text-brand-600 dark:text-brand-300 mt-0.5 shrink-0" />
               <div className="text-sm">
@@ -124,10 +125,10 @@ export function MemberSheet({
                     {bankDisplayName(member.bankCode)} · {member.bankAccountNumber}
                   </p>
                 ) : (
-                  <p className="text-muted">Chưa cấu hình</p>
+                  <p className="text-muted">{t.group.notConfigured}</p>
                 )}
                 <p className="text-xs text-faint mt-0.5">
-                  Thành viên tự quản tài khoản của họ trong phần Cài đặt cá nhân.
+                  {t.group.selfManagedBankHint}
                 </p>
               </div>
             </div>
@@ -135,15 +136,15 @@ export function MemberSheet({
         ) : (
           // Thành viên ảo — owner nhập STK hộ để tạo QR.
           <div className="pt-1">
-            <p className="text-sm font-semibold text-muted mb-1">Tài khoản nhận tiền (để tạo QR)</p>
+            <p className="text-sm font-semibold text-muted mb-1">{t.group.payoutAccountQr}</p>
             <div className="space-y-3">
-              <Field label="Ngân hàng">
+              <Field label={t.group.bankLabel}>
                 <select
                   value={bankCode}
                   onChange={(e) => setBankCode(e.target.value)}
                   className="w-full h-12 px-4 rounded-2xl text-app surface-sunken border border-[var(--border)] focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30 outline-none"
                 >
-                  <option value="">— Chọn ngân hàng —</option>
+                  <option value="">{t.group.selectBank}</option>
                   {BANK_GROUPS.map((grp) => (
                     <optgroup key={grp.label} label={grp.label}>
                       {grp.banks.map((b) => (
@@ -156,16 +157,16 @@ export function MemberSheet({
                 </select>
               </Field>
 
-              <Field label="Số tài khoản">
+              <Field label={t.group.accountNumberLabel}>
                 <Input
                   inputMode="numeric"
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value.replace(/[^\d]/g, ''))}
-                  placeholder="VD: 0123456789"
+                  placeholder={t.group.accountNumberPlaceholder}
                 />
               </Field>
 
-              <Field label="Tên chủ tài khoản" hint="Viết không dấu, đúng như trên app ngân hàng.">
+              <Field label={t.group.accountNameLabel} hint={t.group.accountNameHint}>
                 <Input
                   value={accountName}
                   onChange={(e) => setAccountName(e.target.value.toUpperCase())}
@@ -179,9 +180,9 @@ export function MemberSheet({
         {/* Phân quyền: chuyển quyền chủ nhóm cho thành viên thật khác */}
         {isOwner && isReal && !isMe && (
           <div className="pt-1">
-            <p className="text-sm font-semibold text-muted mb-1">Phân quyền</p>
+            <p className="text-sm font-semibold text-muted mb-1">{t.group.permissionsTitle}</p>
             <Button fullWidth variant="secondary" onClick={doTransfer}>
-              <Crown size={16} /> Chuyển quyền chủ nhóm
+              <Crown size={16} /> {t.group.transferOwnershipFull}
             </Button>
           </div>
         )}

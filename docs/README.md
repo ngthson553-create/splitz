@@ -10,6 +10,7 @@ dựng. Tài liệu dành cho người mới bắt đầu đọc dự án nằm 
 | [ROADMAP.md](ROADMAP.md) | Định hướng thương mại hoá (freemium, PayOS, auth bắt buộc) và cách triển khai theo vertical slice. |
 | [CONSOLE_ADMIN_ROADMAP.md](CONSOLE_ADMIN_ROADMAP.md) | Đặc tả admin console: vai trò, phân quyền, từng phase tính năng và tiêu chí nghiệm thu. |
 | [QC_HOP_NHAT_Slice1-7.md](QC_HOP_NHAT_Slice1-7.md) | Biên bản QC hợp nhất cho các slice 1–7. |
+| [SELF_HOSTING.md](SELF_HOSTING.md) | Hướng dẫn tự host: Docker 1 lệnh, full Supabase stack, Cloudflare Pages, host tĩnh, danh sách biến môi trường. |
 | [reference/](reference/) | Ghi chú về ảnh tham chiếu thiết kế UI. |
 | [email/](email/) | Mẫu HTML cho email gửi người dùng. |
 

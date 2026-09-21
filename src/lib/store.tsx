@@ -15,6 +15,7 @@ import { touchGroup } from './groupFactory'
 import { isConflict } from './data/errors'
 import { recordExpenseHistory } from './data/expenseHistory'
 import { buildExpenseHistoryEntry } from './expenseHistory'
+import { t } from './i18n'
 import type { Expense, Group, Settlement } from './types'
 
 type StoreValue = {
@@ -64,7 +65,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       setGroups(await repo.list())
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Không tải được dữ liệu.')
+      setError(e instanceof Error ? e.message : t().common.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -83,7 +84,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // chạy song song lúc khởi tạo auth gây deadlock lock, và tránh race sau đăng nhập.
   const { cloud, loading: authLoading, session, profile: authProfile } = useAuth()
   const uid = session?.user?.id ?? null
-  const actorName = authProfile?.displayName || session?.user?.email || 'Bạn'
+  const actorName = authProfile?.displayName || session?.user?.email || t().common.you
   useEffect(() => {
     if (cloud && authLoading) return // chờ auth resolve
     if (cloud && !uid) {
@@ -403,6 +404,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
 export function useStore(): StoreValue {
   const ctx = useContext(StoreContext)
-  if (!ctx) throw new Error('useStore phải nằm trong StoreProvider.')
+  if (!ctx)
+    throw new Error(t().errors.hookOutsideProvider.replace('{fn}', 'useStore').replace('{provider}', 'StoreProvider'))
   return ctx
 }

@@ -4,6 +4,7 @@ import { Camera, Check, ChevronRight, Loader2, ShieldCheck, Sparkles, Users, Wal
 import { Avatar, Button, Field, Input } from '../../components/ui'
 import { BankFields, type BankValue } from '../../components/BankFields'
 import { useAuth } from '../../lib/auth'
+import { useT } from '../../lib/i18n'
 import { useToast } from '../../components/Toast'
 import { fileToAvatarDataUrl } from '../../lib/image'
 import { trackEvent } from '../../lib/analytics'
@@ -14,6 +15,7 @@ const ORDER: Step[] = ['consent', 'name', 'bank', 'tour']
 export function OnboardingScreen() {
   const { profile, completeOnboarding } = useAuth()
   const toast = useToast()
+  const t = useT()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [step, setStep] = useState<Step>('consent')
@@ -35,18 +37,18 @@ export function OnboardingScreen() {
     try {
       setAvatarUrl(await fileToAvatarDataUrl(file))
     } catch {
-      toast.error('Không xử lý được ảnh.')
+      toast.error(t.auth.avatarError)
     }
   }
 
   function next() {
     if (step === 'name' && !name.trim()) {
-      toast.error('Nhập tên hiển thị của bạn.')
+      toast.error(t.auth.nameRequired)
       return
     }
     if (step === 'bank') {
       if (!bank.bankCode || !bank.accountNumber.trim() || !bank.accountName.trim()) {
-        toast.error('Cấu hình đủ thông tin ngân hàng để người khác chuyển tiền cho bạn.')
+        toast.error(t.auth.bankRequired)
         return
       }
     }
@@ -66,7 +68,7 @@ export function OnboardingScreen() {
       trackEvent('onboarding_completed', { has_bank: Boolean(bank.bankCode && bank.accountNumber) })
       // ready chuyển true → guard tự điều hướng vào app.
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Không lưu được hồ sơ.')
+      toast.error(e instanceof Error ? e.message : t.auth.profileSaveFailed)
       setSaving(false)
     }
   }
@@ -102,8 +104,8 @@ export function OnboardingScreen() {
             <div className="space-y-5">
               <StepHead
                 icon={<Wallet size={28} />}
-                title="Tài khoản nhận tiền"
-                desc="Bắt buộc — để bạn bè tạo QR chuyển khoản cho bạn ngay trong nhóm. Có thể quét QR ngân hàng để điền nhanh."
+                title={t.auth.bankTitle}
+                desc={t.auth.bankDesc}
               />
               <BankFields value={bank} onChange={setBank} onScanError={(m) => toast.error(m)} />
             </div>
@@ -115,11 +117,11 @@ export function OnboardingScreen() {
           {step === 'tour' ? (
             <Button fullWidth size="lg" onClick={finish} disabled={saving}>
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-              Bắt đầu dùng Splitz
+              {t.auth.startButton}
             </Button>
           ) : (
             <Button fullWidth size="lg" onClick={next}>
-              {step === 'consent' ? 'Tôi đồng ý & tiếp tục' : 'Tiếp tục'}
+              {step === 'consent' ? t.auth.agreeContinue : t.auth.continueLabel}
               <ChevronRight size={18} />
             </Button>
           )}
@@ -144,29 +146,27 @@ function StepHead({ icon, title, desc }: { icon: ReactNode; title: string; desc:
 }
 
 function ConsentStep() {
+  const t = useT()
   return (
     <div className="space-y-5">
       <StepHead
         icon={<ShieldCheck size={28} />}
-        title="Chào mừng đến Splitz"
-        desc="Trước khi bắt đầu, vui lòng đọc và đồng ý với các điều khoản của chúng tôi."
+        title={t.auth.welcomeTitle}
+        desc={t.auth.welcomeDesc}
       />
       <div className="card p-4 space-y-3 text-sm text-muted">
         <p>
-          Khi nhấn "Tôi đồng ý", bạn xác nhận đã đọc và chấp thuận{' '}
+          {t.auth.consentPrefix}{' '}
           <Link to="/terms" className="text-brand-600 dark:text-brand-300 font-semibold underline">
-            Điều khoản sử dụng
+            {t.auth.termsLink}
           </Link>{' '}
-          và{' '}
+          {t.auth.consentAnd}{' '}
           <Link to="/privacy" className="text-brand-600 dark:text-brand-300 font-semibold underline">
-            Chính sách bảo mật
+            {t.auth.privacyLink}
           </Link>
           .
         </p>
-        <p className="text-xs text-faint">
-          Splitz là công cụ ghi chép và tính toán chia tiền. Splitz không giữ tiền và không xử lý
-          thanh toán — mọi giao dịch chuyển khoản do bạn tự thực hiện qua ngân hàng.
-        </p>
+        <p className="text-xs text-faint">{t.auth.consentDisclaimer}</p>
       </div>
     </div>
   )
@@ -183,12 +183,13 @@ function NameStep({
   avatarUrl?: string
   onPickAvatar: () => void
 }) {
+  const t = useT()
   return (
     <div className="space-y-5">
       <StepHead
         icon={<Sparkles size={28} />}
-        title="Bạn tên là gì?"
-        desc="Tên này hiển thị với các thành viên khác trong nhóm. Bạn có thể đổi sau."
+        title={t.auth.nameTitle}
+        desc={t.auth.nameDesc}
       />
       <div className="flex flex-col items-center gap-3">
         <button type="button" onClick={onPickAvatar} className="press relative">
@@ -198,25 +199,26 @@ function NameStep({
           </span>
         </button>
       </div>
-      <Field label="Tên hiển thị">
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="VD: Nguyễn Văn A" autoFocus />
+      <Field label={t.auth.displayNameLabel}>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t.auth.namePlaceholder} autoFocus />
       </Field>
     </div>
   )
 }
 
 function TourStep() {
+  const t = useT()
   const items = [
-    { icon: <Users size={20} />, title: 'Tạo nhóm & mời bạn bè', desc: 'Qua link, mã nhóm hoặc thêm thành viên thủ công.' },
-    { icon: <Wallet size={20} />, title: 'Ghi chi & chia tự động', desc: 'Chia đều, theo phần, phần trăm hoặc theo món.' },
-    { icon: <Sparkles size={20} />, title: 'Rút gọn công nợ & QR', desc: 'Tối thiểu số lượt chuyển, tạo QR thanh toán tức thì.' },
+    { icon: <Users size={20} />, title: t.auth.tour1Title, desc: t.auth.tour1Desc },
+    { icon: <Wallet size={20} />, title: t.auth.tour2Title, desc: t.auth.tour2Desc },
+    { icon: <Sparkles size={20} />, title: t.auth.tour3Title, desc: t.auth.tour3Desc },
   ]
   return (
     <div className="space-y-5">
       <StepHead
         icon={<Check size={28} />}
-        title="Sẵn sàng rồi!"
-        desc="Vài điều Splitz có thể giúp bạn:"
+        title={t.auth.readyTitle}
+        desc={t.auth.readyDesc}
       />
       <div className="space-y-3">
         {items.map((it) => (

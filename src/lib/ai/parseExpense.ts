@@ -1,4 +1,5 @@
 import type { SplitMode } from '../types'
+import { t } from '../i18n'
 
 /**
  * Kết quả phân tích 1 câu nhập chi tự nhiên. Dùng CHUNG cho cả parser quy tắc
@@ -18,9 +19,15 @@ export function isLowConfidence(p: ParsedExpense): boolean {
   return p.amount <= 0 || !p.payerName
 }
 
-const PAYER_KEYWORDS = ['trả hộ', 'thanh toán', 'chuyển', 'trả', 'chi', 'ứng']
-const SPLIT_KEYWORDS = ['chia đều', 'chia cho', 'chia']
-const CONNECTING_WORDS = ['do', 'bởi', 'và', 'cho', 'của', 'tiền', 'khoản']
+// Từ khoá tiếng Việt giữ nguyên vị trí ưu tiên; bộ tiếng Anh THÊM VÀO sau —
+// không thay thế, vì câu tiếng Việt vẫn phải parse đúng khi UI đang English
+// (tên món có thể là tiếng Việt bất kể ngôn ngữ app).
+const PAYER_KEYWORDS = [
+  'trả hộ', 'thanh toán', 'chuyển', 'trả', 'chi', 'ứng',
+  'paid for', 'pay for', 'paid', 'pays', 'pay',
+]
+const SPLIT_KEYWORDS = ['chia đều', 'chia cho', 'chia', 'split equally', 'split between', 'split among', 'split']
+const CONNECTING_WORDS = ['do', 'bởi', 'và', 'cho', 'của', 'tiền', 'khoản', 'by', 'and', 'for', 'of']
 
 /** Bóc số tiền từ câu. Trả [amount, đoạn text đã khớp] để loại khỏi tiêu đề. */
 function extractAmount(text: string): [number, string] {
@@ -80,6 +87,17 @@ function firstKeywordIndex(text: string, keywords: string[]): number {
   return -1
 }
 
+/** Vị trí xuất hiện SỚM NHẤT trong mọi từ khoá — dùng khi cần cắt đoạn sau từ khoá. */
+function earliestKeywordIndex(text: string, keywords: string[]): number {
+  const lower = text.toLowerCase()
+  let best = -1
+  for (const kw of keywords) {
+    const idx = lower.indexOf(kw)
+    if (idx !== -1 && (best === -1 || idx < best)) best = idx
+  }
+  return best
+}
+
 /**
  * Phân tích câu nhập chi bằng QUY TẮC (regex + từ khoá). Zero-cost, offline, tức thì.
  * VD: "Ăn tối 500k Hùng trả chia đều" → {title:'Ăn tối', amount:500000, payerName:'Hùng', ...}
@@ -108,9 +126,9 @@ export function parseExpenseRuleBased(text: string, memberNames: string[]): Pars
     }
   }
 
-  // 3) Người tham gia: tên xuất hiện SAU từ khoá "chia"; nếu không có → cả nhóm
+  // 3) Người tham gia: tên xuất hiện SAU từ khoá "chia"/"split"; nếu không có → cả nhóm
   let participantNames: string[] = []
-  const splitIdx = firstKeywordIndex(clean, SPLIT_KEYWORDS)
+  const splitIdx = earliestKeywordIndex(clean, SPLIT_KEYWORDS)
   if (splitIdx !== -1) {
     const after = clean.slice(splitIdx).toLowerCase()
     for (const name of memberNames) {
@@ -122,7 +140,7 @@ export function parseExpenseRuleBased(text: string, memberNames: string[]): Pars
   // 4) Tiêu đề: phần còn lại sau khi bỏ số tiền / đoạn "chia..." / tên người trả / từ nối
   let titleText = clean
   if (splitIdx !== -1) {
-    const w = titleText.toLowerCase().indexOf('chia')
+    const w = earliestKeywordIndex(titleText, SPLIT_KEYWORDS)
     if (w !== -1) titleText = titleText.slice(0, w)
   }
   if (payerName) titleText = titleText.replace(new RegExp(payerName, 'gi'), ' ')
@@ -132,7 +150,7 @@ export function parseExpenseRuleBased(text: string, memberNames: string[]): Pars
   }
   titleText = titleText.replace(/[.,:;?!\-_]/g, ' ').replace(/\s+/g, ' ').trim()
 
-  let title = titleText || 'Khoản chi'
+  let title = titleText || t().group.defaultExpenseTitle
   title = title.charAt(0).toUpperCase() + title.slice(1)
 
   return { title, amount, payerName, participantNames, splitMode: 'equal' }

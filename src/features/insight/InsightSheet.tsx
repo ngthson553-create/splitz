@@ -3,6 +3,7 @@ import { Sparkles, TrendingUp, Crown } from 'lucide-react'
 import { Sheet } from '../../components/Sheet'
 import { Button } from '../../components/ui'
 import { useToast } from '../../components/Toast'
+import { useT } from '../../lib/i18n'
 import { useSubscription } from '../../lib/subscription'
 import { requestInsight, type SpendingInsight } from '../../lib/ai/insight'
 import { trackEvent } from '../../lib/analytics'
@@ -23,6 +24,7 @@ export function InsightSheet({
   title: string
   stats: InsightStats | null
 }) {
+  const t = useT()
   const { isPremium } = useSubscription()
   const toast = useToast()
   const [busy, setBusy] = useState(false)
@@ -40,7 +42,7 @@ export function InsightSheet({
       setRemaining(res.remaining)
       trackEvent('insight_generated', { scope: stats.scope })
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Không tạo được phân tích.'
+      const msg = e instanceof Error ? e.message : t.home.insightFailed
       if (msg.includes('hết') || msg.toLowerCase().includes('nâng cấp')) setQuotaOut(true)
       toast.error(msg)
     } finally {
@@ -56,10 +58,9 @@ export function InsightSheet({
             <div className="grid place-items-center h-16 w-16 rounded-2xl gradient-brand-soft text-white shadow-glow mb-4 animate-float">
               <TrendingUp size={26} />
             </div>
-            <h3 className="font-bold text-app">Phân tích chi tiêu bằng AI</h3>
+            <h3 className="font-bold text-app">{t.home.aiInsightTitle}</h3>
             <p className="mt-1.5 text-sm text-muted max-w-xs">
-              Splitz đọc số liệu của bạn và rút ra nhận xét: chi nhiều cho việc gì, ai chi nhiều,
-              xu hướng tháng này và gợi ý quyết toán.
+              {t.home.insightIntroDescription}
             </p>
           </div>
         )}
@@ -68,7 +69,7 @@ export function InsightSheet({
           <div className="space-y-3">
             <div className="rounded-2xl gradient-mesh p-4">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-brand-600 dark:text-brand-300 mb-1.5">
-                <Sparkles size={13} /> Nhận xét
+                <Sparkles size={13} /> {t.home.observationLabel}
               </div>
               <p className="text-sm font-semibold text-app leading-snug">{insight.headline}</p>
             </div>
@@ -81,7 +82,7 @@ export function InsightSheet({
               ))}
             </ul>
             <p className="text-[11px] text-faint leading-snug pt-1">
-              Số liệu do Splitz tính chính xác; phần nhận xét do AI viết nên có thể chưa hoàn hảo.
+              {t.home.aiDisclaimer}
             </p>
           </div>
         )}
@@ -90,20 +91,19 @@ export function InsightSheet({
           <div className="rounded-2xl border border-amber-400/40 bg-amber-50/60 dark:bg-amber-500/10 p-3.5 flex items-start gap-2.5">
             <Crown size={18} className="text-amber-500 shrink-0 mt-0.5" />
             <p className="text-sm text-app">
-              Bạn đã dùng hết lượt phân tích miễn phí tháng này. Nâng cấp Premium để phân tích
-              không giới hạn (mở trong Cài đặt → Gói).
+              {t.home.quotaOutMessage}
             </p>
           </div>
         )}
 
         <Button fullWidth size="lg" onClick={generate} disabled={busy || !stats}>
           <Sparkles size={17} />
-          {busy ? 'Đang phân tích…' : insight ? 'Phân tích lại' : 'Tạo phân tích'}
+          {busy ? t.home.analyzing : insight ? t.home.reanalyze : t.home.generateInsight}
         </Button>
 
         {!isPremium && remaining !== null && (
           <p className="text-[11px] text-faint text-center">
-            Miễn phí — còn {remaining} lượt phân tích AI tháng này. Premium dùng không giới hạn.
+            {t.home.freeRemaining({ n: remaining })}
           </p>
         )}
       </div>

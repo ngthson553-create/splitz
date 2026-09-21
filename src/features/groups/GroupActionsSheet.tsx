@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Check, Pencil, Trash2, X } from 'lucide-react'
 import { Sheet } from '../../components/Sheet'
 import { Button, Input } from '../../components/ui'
+import { useT } from '../../lib/i18n'
 import { useStore } from '../../lib/store'
 import { useConfirm } from '../../components/ConfirmDialog'
 import { useToast } from '../../components/Toast'
@@ -17,6 +18,7 @@ export function GroupActionsSheet({
   group: Group | null
   onClose: () => void
 }) {
+  const t = useT()
   const { updateGroup, removeGroup } = useStore()
   const confirm = useConfirm()
   const toast = useToast()
@@ -43,26 +45,26 @@ export function GroupActionsSheet({
       name: name.trim() || prev.name,
       emoji,
     }))
-    toast.success('Đã cập nhật nhóm')
+    toast.success(t.home.updatedToast)
     onClose()
   }
 
   async function doDelete() {
     const ok = await confirm({
-      title: `Xoá nhóm “${g.name}”?`,
-      description: 'Toàn bộ khoản chi và thành viên trong nhóm sẽ bị xoá vĩnh viễn.',
-      confirmLabel: 'Xoá nhóm',
+      title: t.home.deleteConfirmTitle({ name: g.name }),
+      description: t.home.deleteConfirmDescription,
+      confirmLabel: t.home.deleteGroup,
       danger: true,
     })
     if (!ok) return
     await removeGroup(g.id)
-    toast.success('Đã xoá nhóm')
+    toast.success(t.home.deletedToast)
     onClose()
     navigate('/groups')
   }
 
   return (
-    <Sheet open={Boolean(group)} onClose={onClose} title={editing ? 'Sửa nhóm' : g.name}>
+    <Sheet open={Boolean(group)} onClose={onClose} title={editing ? t.home.editGroup : g.name}>
       {editing ? (
         <div className="space-y-4 py-1">
           <div className="flex flex-wrap gap-2 justify-center">
@@ -78,22 +80,22 @@ export function GroupActionsSheet({
               </button>
             ))}
           </div>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tên nhóm" autoFocus />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t.home.groupName} autoFocus />
           <div className="flex gap-2">
             <Button variant="secondary" fullWidth onClick={() => setEditing(false)}>
-              <X size={16} /> Huỷ
+              <X size={16} /> {t.common.cancel}
             </Button>
             <Button fullWidth onClick={saveEdit}>
-              <Check size={16} /> Lưu
+              <Check size={16} /> {t.common.save}
             </Button>
           </div>
         </div>
       ) : (
         <div className="space-y-1 py-1">
-          <ActionRow icon={<Pencil size={18} />} label="Sửa tên & biểu tượng" onClick={() => setEditing(true)} />
+          <ActionRow icon={<Pencil size={18} />} label={t.home.editNameAndEmoji} onClick={() => setEditing(true)} />
           <ActionRow
             icon={<Trash2 size={18} />}
-            label="Xoá nhóm"
+            label={t.home.deleteGroup}
             danger
             onClick={doDelete}
           />

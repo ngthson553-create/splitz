@@ -83,7 +83,7 @@
 </style>
 </head>
 <body>
-  <p class="hint">Mở trong Chrome → chụp node <b>.og</b> (1200×630) → lưu thành <b>public/og-image.png</b>.</p>
+  <p class="hint">Mở trong Chrome → chụp node <b>.og</b> (1200×630) → lưu <b>public/og-image.png</b> (thêm <b>?lang=en</b> cho bản tiếng Anh).</p>
 
   <div class="og" id="og">
     <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -91,42 +91,66 @@
     <div class="left">
       <div class="brandrow">
         <div class="logo"><svg viewBox="0 0 64 64"><path d="M41 23c-2.2-2.4-5.3-3.6-9-3.6-5.6 0-9.4 2.9-9.4 7.3 0 4 2.7 5.9 8 7 4.2.9 5.4 1.6 5.4 3.2 0 1.7-1.7 2.8-4.6 2.8-3 0-5.3-1.2-7.2-3.3l-3.6 4c2.4 2.8 6 4.4 10.5 4.4 6 0 10.1-3 10.1-7.7 0-4.2-2.8-6.1-8.4-7.3-3.9-.8-5-1.4-5-2.9 0-1.5 1.5-2.5 4-2.5 2.6 0 4.7 1 6.3 2.8z" fill="#fff"/></svg></div>
-        <div class="pill"><span class="dot"></span>Chia tiền theo event</div>
+        <div class="pill"><span class="dot"></span><span id="t-pill">Chia tiền theo event</span></div>
       </div>
-      <h1>Rõ ai trả,<br>ai chia,<br>ai cần chuyển.</h1>
-      <div class="tagline">Rút gọn công nợ, tạo QR ngân hàng.</div>
-      <div class="safe">Không giữ tiền · Không xử lý thanh toán</div>
+      <h1 id="t-h1">Rõ ai trả,<br>ai chia,<br>ai cần chuyển.</h1>
+      <div class="tagline" id="t-tagline">Rút gọn công nợ, tạo QR ngân hàng.</div>
+      <div class="safe" id="t-safe">Không giữ tiền · Không xử lý thanh toán</div>
     </div>
 
     <div class="cards">
       <div class="card cardBack">
         <div class="pad">
           <div class="miniLogo"><svg viewBox="0 0 64 64"><path d="M41 23c-2.2-2.4-5.3-3.6-9-3.6-5.6 0-9.4 2.9-9.4 7.3 0 4 2.7 5.9 8 7 4.2.9 5.4 1.6 5.4 3.2 0 1.7-1.7 2.8-4.6 2.8-3 0-5.3-1.2-7.2-3.3l-3.6 4c2.4 2.8 6 4.4 10.5 4.4 6 0 10.1-3 10.1-7.7 0-4.2-2.8-6.1-8.4-7.3-3.9-.8-5-1.4-5-2.9 0-1.5 1.5-2.5 4-2.5 2.6 0 4.7 1 6.3 2.8z" fill="#fff"/></svg></div>
-          <div style="margin-top:24px" class="lbl">Event của nhóm</div>
-          <div class="big">Công nợ rõ ràng</div>
-          <div class="hl"><div class="lbl">Sau khi chia tiền</div><div class="v">Tạo QR</div></div>
+          <div style="margin-top:24px" class="lbl" id="t-l1">Event của nhóm</div>
+          <div class="big" id="t-b1">Công nợ rõ ràng</div>
+          <div class="hl"><div class="lbl" id="t-l2">Sau khi chia tiền</div><div class="v" id="t-v2">Tạo QR</div></div>
           <div class="twin">
-            <div class="box"><div class="lbl">Khoản chi</div><div class="v">Dễ scan</div></div>
-            <div class="box"><div class="lbl">Rút gọn</div><div class="v">Ít lượt</div></div>
+            <div class="box"><div class="lbl" id="t-l3">Khoản chi</div><div class="v" id="t-v3">Dễ scan</div></div>
+            <div class="box"><div class="lbl" id="t-l4">Rút gọn</div><div class="v" id="t-v4">Ít lượt</div></div>
           </div>
-          <div class="btn">Mở quyết toán</div>
+          <div class="btn" id="t-btn">Mở quyết toán</div>
         </div>
       </div>
       <div class="card cardFront">
         <div class="pad" style="padding:26px 28px">
-          <div class="lbl">QR chuyển khoản</div>
+          <div class="lbl" id="t-l5">QR chuyển khoản</div>
           <div class="big" style="color:#1f4ff5;font-size:32px">VietQR</div>
           <div class="qrwrap">
             <div class="qr" id="qrgrid"></div>
             <div class="qrcenter"><div class="d"><svg viewBox="0 0 64 64"><path d="M41 23c-2.2-2.4-5.3-3.6-9-3.6-5.6 0-9.4 2.9-9.4 7.3 0 4 2.7 5.9 8 7 4.2.9 5.4 1.6 5.4 3.2 0 1.7-1.7 2.8-4.6 2.8-3 0-5.3-1.2-7.2-3.3l-3.6 4c2.4 2.8 6 4.4 10.5 4.4 6 0 10.1-3 10.1-7.7 0-4.2-2.8-6.1-8.4-7.3-3.9-.8-5-1.4-5-2.9 0-1.5 1.5-2.5 4-2.5 2.6 0 4.7 1 6.3 2.8z" fill="#fff"/></svg></div></div>
           </div>
-          <div class="btnOutline">Chuyển trực tiếp</div>
+          <div class="btnOutline" id="t-btn2">Chuyển trực tiếp</div>
         </div>
       </div>
     </div>
   </div>
 
   <script>
+    // ?lang=en → bản tiếng Anh; mặc định tiếng Việt (ngôn ngữ gốc sản phẩm).
+    const I18N = {
+      en: {
+        pill: 'Split by event',
+        h1: 'Who paid,<br>who owes,<br>who transfers.',
+        tagline: 'Fewest transfers. Instant bank QR.',
+        safe: 'No funds held · No payment processing',
+        l1: "Your group's event", b1: 'Clear balances',
+        l2: 'After splitting', v2: 'Scan a QR',
+        l3: 'Expenses', v3: 'Scan-ready',
+        l4: 'Smart settle', v4: 'Min transfers',
+        btn: 'Settle up now',
+        l5: 'Bank transfer QR',
+        btn2: 'Transfer directly',
+      },
+    };
+    if (new URLSearchParams(location.search).get('lang') === 'en') {
+      for (const [k, v] of Object.entries(I18N.en)) {
+        const el = document.getElementById('t-' + k);
+        if (el) el.innerHTML = v;
+      }
+      document.documentElement.lang = 'en';
+    }
+
     const P = [
       "XXXXXOXOXXX","XOOOXOOOXOX","XOXOXOXXXOX","XOXOXOOOXOX","XXXXXOXOXXX",
       "OOOOOOXOOOO","XOXXXOXOXXX","OOOOOOOOOXO","XXXXXOXXOXO","XOOOXOOXOXX","XOXOXOXOXOX"

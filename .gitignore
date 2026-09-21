@@ -18,6 +18,8 @@ test-results
 .env.local
 .env.*.local
 *.local
+# Self-host secrets (template: .env.docker.example)
+.env.docker
 
 # Editor and OS noise
 .vscode/*

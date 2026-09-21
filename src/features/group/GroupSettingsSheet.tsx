@@ -5,6 +5,7 @@ import { Sheet } from '../../components/Sheet'
 import { Avatar, Badge, Button, Input, Segmented } from '../../components/ui'
 import { useStore } from '../../lib/store'
 import { useAuth } from '../../lib/auth'
+import { useT } from '../../lib/i18n'
 import { createInvite } from '../../lib/data/invites'
 import { useConfirm } from '../../components/ConfirmDialog'
 import { useToast } from '../../components/Toast'
@@ -32,6 +33,7 @@ export function GroupSettingsSheet({
   const confirm = useConfirm()
   const toast = useToast()
   const navigate = useNavigate()
+  const t = useT()
 
   const [name, setName] = useState(group.name)
   const [emoji, setEmoji] = useState(group.emoji ?? '💸')
@@ -61,11 +63,11 @@ export function GroupSettingsSheet({
 
   async function saveGroup() {
     await updateGroup(group.id, (g) => ({ ...g, name: name.trim() || g.name, emoji }))
-    toast.success('Đã lưu nhóm')
+    toast.success(t.group.savedToast)
   }
 
   async function addMember() {
-    const member = createMember(`Thành viên ${group.members.length + 1}`, group.members.length)
+    const member = createMember(t.group.defaultMemberName({ n: group.members.length + 1 }), group.members.length)
     await updateGroup(group.id, (g) => ({ ...g, members: [...g.members, member] }))
     // Local: mở luôn để sửa. Cloud: id thật do DB cấp sau reload → user bấm sửa từ danh sách.
     if (!isCloud) setEditingMember(member)
@@ -73,9 +75,9 @@ export function GroupSettingsSheet({
 
   async function removeMember(id: string, mname: string) {
     const ok = await confirm({
-      title: `Xoá ${mname}?`,
-      description: 'Thành viên này chưa tham gia khoản chi nào.',
-      confirmLabel: 'Xoá',
+      title: t.group.deleteMemberTitle({ name: mname }),
+      description: t.group.deleteMemberDesc,
+      confirmLabel: t.common.delete,
       danger: true,
     })
     if (!ok) return
@@ -91,10 +93,10 @@ export function GroupSettingsSheet({
     try {
       const res = await createInvite(group.id, { kind, targetMemberId })
       trackEvent('invite_created', { kind, is_claim: Boolean(targetMemberId) })
-      if (kind === 'code') setInvite({ label: 'Mã nhóm', value: res.code ?? res.token })
-      else setInvite({ label: targetMemberId ? 'Link nhận thành viên' : 'Link mời', value: res.url })
+      if (kind === 'code') setInvite({ label: t.group.inviteCodeLabel, value: res.code ?? res.token })
+      else setInvite({ label: targetMemberId ? t.group.claimLinkLabel : t.group.inviteLink, value: res.url })
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Không tạo được lời mời.')
+      toast.error(e instanceof Error ? e.message : t.group.inviteError)
     } finally {
       setInviting(false)
     }
@@ -104,9 +106,9 @@ export function GroupSettingsSheet({
     if (!invite) return
     try {
       await navigator.clipboard.writeText(invite.value)
-      toast.success('Đã sao chép')
+      toast.success(t.common.copied)
     } catch {
-      toast.error('Không sao chép được')
+      toast.error(t.group.copyError)
     }
   }
 
@@ -115,7 +117,7 @@ export function GroupSettingsSheet({
       await exportGroupReport(group)
       trackEvent('group_report_exported', { member_count: group.members.length, expense_count: group.expenses.length })
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Không xuất được báo cáo.')
+      toast.error(e instanceof Error ? e.message : t.group.reportExportError)
     }
   }
 
@@ -127,40 +129,40 @@ export function GroupSettingsSheet({
       if (bal !== 0) {
         toast.error(
           bal < 0
-            ? 'Bạn còn nợ trong nhóm. Hãy tất toán hết trước khi rời.'
-            : 'Nhóm còn nợ bạn. Hãy quyết toán xong trước khi rời.',
+            ? t.group.leaveDebtError
+            : t.group.leaveCreditError,
         )
         return
       }
     }
     const ok = await confirm({
-      title: `Rời nhóm “${group.name}”?`,
-      description: 'Bạn sẽ không còn thấy nhóm này. Có thể tham gia lại nếu được mời.',
-      confirmLabel: 'Rời nhóm',
+      title: t.group.leaveTitle({ name: group.name }),
+      description: t.group.leaveDesc,
+      confirmLabel: t.group.leave,
       danger: true,
     })
     if (!ok) return
     try {
       await leaveGroup(group.id)
-      toast.success('Đã rời nhóm')
+      toast.success(t.group.leftToast)
       onClose()
       navigate('/groups')
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Không rời được nhóm.')
+      toast.error(e instanceof Error ? e.message : t.group.leaveError)
     }
   }
 
   async function deleteGroup() {
     const ok = await confirm({
-      title: `Xoá nhóm “${group.name}”?`,
-      description: 'Toàn bộ khoản chi và thành viên sẽ bị xoá vĩnh viễn.',
-      confirmLabel: 'Xoá nhóm',
+      title: t.group.deleteGroupTitle({ name: group.name }),
+      description: t.group.deleteGroupDesc,
+      confirmLabel: t.group.deleteGroup,
       danger: true,
     })
     if (!ok) return
     await removeGroup(group.id)
     trackEvent('group_deleted', { member_count: group.members.length, expense_count: group.expenses.length })
-    toast.success('Đã xoá nhóm')
+    toast.success(t.group.deletedToast)
     onClose()
     navigate('/groups')
   }
@@ -169,11 +171,11 @@ export function GroupSettingsSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title="Cài đặt nhóm"
+      title={t.group.settingsTitle}
       footer={
         dirty && isOwner ? (
           <Button fullWidth size="lg" onClick={saveGroup}>
-            <Check size={18} /> Lưu thay đổi
+            <Check size={18} /> {t.group.saveChanges}
           </Button>
         ) : undefined
       }
@@ -195,7 +197,7 @@ export function GroupSettingsSheet({
                 </button>
               ))}
             </div>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tên nhóm" />
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t.group.namePlaceholder} />
           </section>
         ) : (
           <section className="flex items-center gap-3">
@@ -204,7 +206,7 @@ export function GroupSettingsSheet({
             </div>
             <div>
               <p className="font-bold text-app">{group.name}</p>
-              <p className="text-xs text-muted">Bạn là thành viên của nhóm này.</p>
+              <p className="text-xs text-muted">{t.group.youAreMemberHint}</p>
             </div>
           </section>
         )}
@@ -213,13 +215,13 @@ export function GroupSettingsSheet({
         <section className="space-y-2">
           <div className="flex items-center justify-between">
             <h3 className="text-[13px] font-semibold text-muted">
-              Thành viên ({group.members.length})
+              {t.group.membersCount({ n: group.members.length })}
             </h3>
           </div>
           <p className="text-xs text-faint">
             {isCloud
-              ? 'Thành viên “ảo” chỉ có tên; mời họ nhận danh tính để tự quản tài khoản của mình.'
-              : 'Gõ tên tự do cho từng thành viên.'}
+              ? t.group.virtualMembersHint
+              : t.group.freeNameHint}
           </p>
           <div className="space-y-1.5">
             {group.members.map((m) => {
@@ -240,12 +242,12 @@ export function GroupSettingsSheet({
                     </p>
                     <p className="text-xs text-muted truncate">
                       {isMe
-                        ? 'Bạn'
+                        ? t.common.you
                         : isVirtual
-                          ? 'Thành viên ảo — chưa có tài khoản'
+                          ? t.group.virtualNoAccount
                           : hasBank
                             ? `${bankDisplayName(m.bankCode)} · ${m.bankAccountNumber}`
-                            : 'Chưa có tài khoản'}
+                            : t.group.noBankAccount}
                     </p>
                   </div>
                   {hasBank && !isVirtual && (
@@ -258,7 +260,7 @@ export function GroupSettingsSheet({
                       onClick={() => makeInvite('link', m.id)}
                       disabled={inviting}
                       className="press grid place-items-center h-8 w-8 rounded-lg text-faint hover:text-brand-600 shrink-0"
-                      aria-label="Mời nhận thành viên này"
+                      aria-label={t.group.claimMemberAria}
                     >
                       <LinkIcon size={15} />
                     </button>
@@ -267,7 +269,7 @@ export function GroupSettingsSheet({
                     <button
                       onClick={() => setEditingMember(m)}
                       className="press grid place-items-center h-8 w-8 rounded-lg text-faint hover:text-brand-600 shrink-0"
-                      aria-label="Sửa"
+                      aria-label={t.common.edit}
                     >
                       <Pencil size={15} />
                     </button>
@@ -276,7 +278,7 @@ export function GroupSettingsSheet({
                     <button
                       onClick={() => removeMember(m.id, m.name)}
                       className="press grid place-items-center h-8 w-8 rounded-lg text-faint hover:text-neg shrink-0"
-                      aria-label="Xoá"
+                      aria-label={t.common.delete}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -287,7 +289,7 @@ export function GroupSettingsSheet({
           </div>
           {isOwner && (
             <Button fullWidth variant="secondary" onClick={addMember}>
-              <UserPlus size={16} /> Thêm thành viên
+              <UserPlus size={16} /> {t.group.addMember}
             </Button>
           )}
         </section>
@@ -295,13 +297,13 @@ export function GroupSettingsSheet({
         {/* Mời thành viên (cloud) */}
         {isCloud && (
           <section className="space-y-2">
-            <h3 className="text-[13px] font-semibold text-muted">Mời thành viên</h3>
+            <h3 className="text-[13px] font-semibold text-muted">{t.group.inviteMembers}</h3>
             <div className="flex gap-2">
               <Button fullWidth variant="secondary" onClick={() => makeInvite('link')} disabled={inviting}>
-                <LinkIcon size={16} /> Link mời
+                <LinkIcon size={16} /> {t.group.inviteLink}
               </Button>
               <Button fullWidth variant="secondary" onClick={() => makeInvite('code')} disabled={inviting}>
-                <UserPlus size={16} /> Mã nhóm
+                <UserPlus size={16} /> {t.group.inviteCodeLabel}
               </Button>
             </div>
             {invite && (
@@ -313,42 +315,42 @@ export function GroupSettingsSheet({
                 <button
                   onClick={copyInvite}
                   className="press grid place-items-center h-9 w-9 rounded-lg text-faint hover:text-brand-600 shrink-0"
-                  aria-label="Sao chép"
+                  aria-label={t.common.copy}
                 >
                   <Copy size={16} />
                 </button>
               </div>
             )}
             <p className="text-xs text-faint">
-              Chia sẻ link/mã để người khác tham gia. Link “nhận thành viên” gắn người dùng vào đúng tên ảo.
+              {t.group.inviteHint}
             </p>
           </section>
         )}
 
         {/* Cách quyết toán */}
         <section className="space-y-2">
-          <h3 className="text-[13px] font-semibold text-muted">Cách quyết toán</h3>
+          <h3 className="text-[13px] font-semibold text-muted">{t.group.settlementMethodTitle}</h3>
           <Segmented<SettlementMethod>
             value={group.settlementMethod}
             onChange={isOwner ? setMethod : () => {}}
             options={[
-              { value: 'smart_settle', label: 'Thông minh' },
-              { value: 'maximize_reduction', label: 'Tối thiểu lượt' },
+              { value: 'smart_settle', label: t.group.methodSmart },
+              { value: 'maximize_reduction', label: t.group.methodMinTransfers },
             ]}
           />
           <p className="text-xs text-faint">
-            “Thông minh” ghép nợ trực tiếp; “Tối thiểu lượt” gom cụm để giảm số lần chuyển.
+            {t.group.settlementMethodHint}
           </p>
         </section>
 
         {/* Báo cáo */}
         <section className="space-y-2">
-          <h3 className="text-[13px] font-semibold text-muted">Báo cáo</h3>
+          <h3 className="text-[13px] font-semibold text-muted">{t.group.reportTitle}</h3>
           <Button fullWidth variant="secondary" onClick={exportReport}>
-            <Download size={16} /> Xuất báo cáo PDF (kèm chứng từ)
+            <Download size={16} /> {t.group.exportReport}
           </Button>
           <p className="text-xs text-faint">
-            Mở cửa sổ in để lưu PDF. Ảnh chứng từ được nhúng; file PDF chứng từ được liệt kê theo khoản chi.
+            {t.group.reportHint}
           </p>
         </section>
 
@@ -360,12 +362,11 @@ export function GroupSettingsSheet({
                 onClick={deleteGroup}
                 className="press w-full flex items-center justify-center gap-2 h-11 rounded-xl text-neg font-semibold text-sm hover:bg-neg/10 transition"
               >
-                <Trash2 size={16} /> Xoá nhóm này
+                <Trash2 size={16} /> {t.group.deleteThisGroup}
               </button>
               {isCloud && (
                 <p className="mt-2 text-xs text-faint text-center">
-                  Muốn rời nhưng giữ nhóm? Mở một thành viên đã có tài khoản → “Chuyển quyền chủ
-                  nhóm”, sau đó bạn mới có thể rời.
+                  {t.group.leaveButKeepHint}
                 </p>
               )}
             </>
@@ -374,7 +375,7 @@ export function GroupSettingsSheet({
               onClick={leave}
               className="press w-full flex items-center justify-center gap-2 h-11 rounded-xl text-neg font-semibold text-sm hover:bg-neg/10 transition"
             >
-              <LogOut size={16} /> Rời nhóm
+              <LogOut size={16} /> {t.group.leave}
             </button>
           ) : null}
         </section>

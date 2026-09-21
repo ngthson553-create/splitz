@@ -1,4 +1,5 @@
 import { getSupabase } from '../supabase/client'
+import { t } from '../i18n'
 import {
   parseExpenseHistoryEntry,
   type ExpenseHistoryAction,
@@ -60,7 +61,7 @@ function fromActivityRow(row: ActivityRow): ExpenseHistoryEntry | null {
     action: action(row.action),
     actorUserId: row.actor_user_id,
     createdAt: row.created_at,
-    summary: 'Đã cập nhật khoản chi',
+    summary: t().common.expenseUpdatedSummary,
     changes: [],
   }
 }

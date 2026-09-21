@@ -39,3 +39,37 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Build image mỗi push/PR để bắt hồi quy Docker sớm (Dockerfile, entrypoint,
+  # nginx). KHÔNG push — publish là việc của release.yml khi tag.
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: splitz:ci
+
+      - name: Smoke test — SPA root, deep route, runtime config
+        run: |
+          docker run -d --name splitz-ci -p 18080:80 \
+            -e SPLITZ_SITE_URL=https://ci.example.com splitz:ci
+          sleep 2
+          set -e
+          # Root trả HTML của app
+          curl -sf http://localhost:18080/ | grep -q '<div id="root">'
+          # Route sâu phải fallback về index.html, không 404
+          curl -sf http://localhost:18080/settings | grep -q '<div id="root">'
+          # Entry point sinh lại runtime-config.js từ env container
+          curl -sf http://localhost:18080/runtime-config.js | grep -q '__SPLITZ_CONFIG__'
+          # Marker __SITE_URL__ được thay bằng env, không còn sót trong HTML
+          curl -sf http://localhost:18080/ | grep -v '__SITE_URL__' | grep -q 'ci.example.com'
+          docker rm -f splitz-ci

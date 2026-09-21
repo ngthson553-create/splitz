@@ -11,6 +11,8 @@ import type { Session } from '@supabase/supabase-js'
 import { getSupabase, isSupabaseConfigured } from './supabase/client'
 import { identifyUser, resetUser } from './analytics'
 import { isZaloConfigured, startZaloLogin } from './zalo'
+import { t } from './i18n'
+import { runtimeEnv } from './env'
 
 /** Hồ sơ người dùng (ánh xạ từ bảng public.profiles). */
 export type CloudProfile = {
@@ -44,8 +46,13 @@ type AuthValue = {
   ready: boolean
   /** Zalo có được cấu hình không (ẩn/hiện nút). */
   zaloEnabled: boolean
+  /** Bản self-host bật SPLITZ_ENABLE_PASSWORD_LOGIN → hiện form email/mật khẩu. */
+  passwordLoginEnabled: boolean
   signInWithGoogle: () => Promise<void>
   signInWithZalo: () => Promise<void>
+  /** Trả về "cần xác nhận email" khi GoTrue không tự xác nhận (không có session). */
+  signInWithPassword: (email: string, password: string) => Promise<boolean>
+  signUpWithPassword: (email: string, password: string) => Promise<boolean>
   signOut: () => Promise<void>
   completeOnboarding: (input: OnboardingInput) => Promise<void>
   updateProfile: (patch: Partial<OnboardingInput>) => Promise<void>
@@ -104,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    if (!email) throw new Error('Tài khoản không có email — không thể định danh.')
+    if (!email) throw new Error(t().errors.accountMissingEmail)
     const insertRow = {
       id: userId,
       email,
@@ -168,6 +175,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await startZaloLogin()
   }, [])
 
+  // Email + mật khẩu chỉ dùng cho self-host (GoTrue hỗ trợ sẵn). Trả về true
+  // khi có session ngay; false = GoTrue chờ xác nhận email → UI nhắc kiểm tra hộp thư.
+  const signInWithPassword = useCallback(async (email: string, password: string) => {
+    const { data, error } = await getSupabase().auth.signInWithPassword({ email, password })
+    if (error) throw error
+    return Boolean(data.session)
+  }, [])
+
+  const signUpWithPassword = useCallback(async (email: string, password: string) => {
+    const { data, error } = await getSupabase().auth.signUp({ email, password })
+    if (error) throw error
+    return Boolean(data.session)
+  }, [])
+
   const signOut = useCallback(async () => {
     await getSupabase().auth.signOut()
     setProfile(null)
@@ -177,7 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const completeOnboarding = useCallback(
     async (input: OnboardingInput) => {
       const sb = getSupabase()
-      if (!session) throw new Error('Chưa đăng nhập.')
+      if (!session) throw new Error(t().errors.notSignedIn)
       const patch = {
         display_name: input.displayName.trim(),
         avatar_url: input.avatarUrl ?? null,
@@ -202,7 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = useCallback(
     async (patch: Partial<OnboardingInput>) => {
       const sb = getSupabase()
-      if (!session) throw new Error('Chưa đăng nhập.')
+      if (!session) throw new Error(t().errors.notSignedIn)
       const row: Record<string, string | null> = {}
       if (patch.displayName !== undefined) row.display_name = patch.displayName.trim()
       if (patch.avatarUrl !== undefined) row.avatar_url = patch.avatarUrl ?? null
@@ -230,13 +251,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       ready: !cloud || Boolean(session && profile?.onboardedAt),
       zaloEnabled: isZaloConfigured,
+      passwordLoginEnabled: cloud && runtimeEnv('VITE_ENABLE_PASSWORD_LOGIN') === 'true',
       signInWithGoogle,
       signInWithZalo,
+      signInWithPassword,
+      signUpWithPassword,
       signOut,
       completeOnboarding,
       updateProfile,
     }),
-    [cloud, loading, session, profile, signInWithGoogle, signInWithZalo, signOut, completeOnboarding, updateProfile],
+    [cloud, loading, session, profile, signInWithGoogle, signInWithZalo, signInWithPassword, signUpWithPassword, signOut, completeOnboarding, updateProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -244,6 +268,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthValue {
   const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth phải nằm trong AuthProvider.')
+  if (!ctx)
+    throw new Error(t().errors.hookOutsideProvider.replace('{fn}', 'useAuth').replace('{provider}', 'AuthProvider'))
   return ctx
 }

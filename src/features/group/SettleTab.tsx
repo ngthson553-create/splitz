@@ -19,6 +19,7 @@ import { signedSettlementProofUrl } from '../../lib/data/attachments'
 import { errorMessage } from '../../lib/data/errors'
 import { formatVnd } from '../../lib/format'
 import { settleState } from '../../lib/settlement'
+import { useT } from '../../lib/i18n'
 import { useStore } from '../../lib/store'
 import { useAuth } from '../../lib/auth'
 import { remindDebts, listMyDebtReminders, type RemindTarget } from '../../lib/data/reminders'
@@ -39,6 +40,7 @@ export function SettleTab({
   const { profile } = useAuth()
   const toast = useToast()
   const confirm = useConfirm()
+  const t = useT()
   const [busy, setBusy] = useState<string | null>(null)
 
   const memberById = useMemo(() => new Map(group.members.map((m) => [m.id, m])), [group.members])
@@ -88,17 +90,17 @@ export function SettleTab({
       const noDevice = results.filter((r) => r.status === 'no_device').length
       const cooldown = results.filter((r) => r.status === 'cooldown').length
       if (sent > 0) {
-        toast.success(targets.length > 1 ? `Đã nhắc ${sent} người.` : 'Đã gửi lời nhắc.')
+        toast.success(targets.length > 1 ? t.group.remindedCount({ n: sent }) : t.group.remindSentToast)
       } else if (noDevice > 0) {
-        toast.show('Họ chưa bật thông báo nên chưa nhận được nhắc.', 'info')
+        toast.show(t.group.noDeviceToast, 'info')
       } else if (cooldown > 0) {
-        toast.error('Bạn vừa nhắc gần đây rồi, thử lại sau.')
+        toast.error(t.group.remindCooldownToast)
       } else {
-        toast.error('Không gửi được lời nhắc.')
+        toast.error(t.group.remindError)
       }
       await loadReminders()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Không gửi được lời nhắc.')
+      toast.error(e instanceof Error ? e.message : t.group.remindError)
     } finally {
       setBusy(null)
     }
@@ -108,9 +110,9 @@ export function SettleTab({
     setBusy(s.id)
     try {
       await confirmSettlement(group.id, s.id)
-      toast.success('Đã xác nhận nhận tiền')
+      toast.success(t.group.confirmedToast)
     } catch (e) {
-      toast.error(errorMessage(e, 'Không xác nhận được.'))
+      toast.error(errorMessage(e, t.group.confirmError))
     } finally {
       setBusy(null)
     }
@@ -118,18 +120,18 @@ export function SettleTab({
 
   async function doCancel(s: Settlement) {
     const ok = await confirm({
-      title: 'Huỷ quyết toán này?',
-      description: 'Khoản nợ sẽ quay lại danh sách cần chuyển.',
-      confirmLabel: 'Huỷ quyết toán',
+      title: t.group.cancelSettleTitle,
+      description: t.group.cancelSettleDesc,
+      confirmLabel: t.group.cancelSettle,
       danger: true,
     })
     if (!ok) return
     setBusy(s.id)
     try {
       await cancelSettlement(group.id, s.id)
-      toast.success('Đã huỷ quyết toán')
+      toast.success(t.group.cancelledToast)
     } catch (e) {
-      toast.error(errorMessage(e, 'Không huỷ được.'))
+      toast.error(errorMessage(e, t.group.cancelError))
     } finally {
       setBusy(null)
     }
@@ -140,7 +142,7 @@ export function SettleTab({
       const url = await signedSettlementProofUrl(s)
       window.open(url, '_blank', 'noopener')
     } catch (e) {
-      toast.error(errorMessage(e, 'Không mở được chứng từ.'))
+      toast.error(errorMessage(e, t.group.proofOpenError))
     }
   }
 
@@ -161,8 +163,8 @@ export function SettleTab({
     return (
       <EmptyState
         icon={<QrCode size={26} />}
-        title="Chưa có gì để quyết toán"
-        description="Ghi khoản chi trước, Splitz sẽ tự gợi ý cách chuyển tiền tối ưu."
+        title={t.group.nothingToSettleTitle}
+        description={t.group.nothingToSettleDesc}
       />
     )
   }
@@ -171,8 +173,8 @@ export function SettleTab({
     return (
       <EmptyState
         icon={<PartyPopper size={28} />}
-        title="Cả nhóm đã sòng phẳng!"
-        description="Không còn ai nợ ai. Mọi khoản chi đã được quyết toán xong xuôi."
+        title={t.group.allSettledTitle}
+        description={t.group.allSettledDesc}
       />
     )
   }
@@ -183,7 +185,7 @@ export function SettleTab({
       {state.pending.length > 0 && (
         <motion.div variants={fadeUpItem} className="space-y-2">
           <h3 className="text-[13px] font-semibold text-muted flex items-center gap-1.5">
-            <Clock size={14} /> Đang chờ xác nhận ({state.pending.length})
+            <Clock size={14} /> {t.group.pendingCount({ n: state.pending.length })}
           </h3>
           {state.pending.map((s) => {
             const from = memberById.get(s.fromMemberId)
@@ -208,7 +210,7 @@ export function SettleTab({
                     {from?.name} → {to?.name}
                   </p>
                   <p className="text-xs text-muted mt-0.5 leading-snug line-clamp-2 break-words">
-                    {iAmRecipient ? 'Bạn nhận khoản này?' : `Chờ ${to?.name} xác nhận`}
+                    {iAmRecipient ? t.group.awaitingYourConfirm : t.group.awaitingConfirm({ name: to?.name ?? '' })}
                   </p>
                 </div>
                 {s.proofStoragePath && (
@@ -216,7 +218,7 @@ export function SettleTab({
                     onClick={() => void openProof(s)}
                     className="press inline-flex items-center gap-1.5 text-xs font-semibold text-brand-600 dark:text-brand-300"
                   >
-                    <Paperclip size={13} /> Xem chứng từ
+                    <Paperclip size={13} /> {t.group.viewProof}
                   </button>
                 )}
                 <div className="flex gap-2">
@@ -227,7 +229,7 @@ export function SettleTab({
                       onClick={() => doConfirm(s)}
                       disabled={busy === s.id}
                     >
-                      <Check size={15} /> Đã nhận
+                      <Check size={15} /> {t.group.received}
                     </Button>
                   )}
                   {canCancel && (
@@ -238,11 +240,11 @@ export function SettleTab({
                       onClick={() => doCancel(s)}
                       disabled={busy === s.id}
                     >
-                      <X size={15} /> {iAmRecipient ? 'Không nhận' : 'Huỷ'}
+                      <X size={15} /> {iAmRecipient ? t.group.decline : t.common.cancel}
                     </Button>
                   )}
                   {!canCancel && (
-                    <p className="text-xs text-faint w-full text-center py-1.5">Chờ xác nhận…</p>
+                    <p className="text-xs text-faint w-full text-center py-1.5">{t.group.waitingConfirm}</p>
                   )}
                 </div>
               </Card>
@@ -260,11 +262,11 @@ export function SettleTab({
                 <CheckCircle2 size={18} />
               </div>
               <p className="text-sm flex-1 min-w-[12rem] leading-snug">
-                Còn{' '}
+                {t.group.transfersLeftPrefix}{' '}
                 <span className="font-extrabold text-brand-600 dark:text-brand-300">
-                  {state.transfers.length} lượt chuyển
+                  {t.group.transfersLeftCount({ n: state.transfers.length })}
                 </span>{' '}
-                để tất toán công nợ.
+                {t.group.transfersLeftSuffix}
               </p>
               {/* Nhắc hàng loạt: chỉ hiện khi ≥2 người (là user thật) đang nợ mình & chưa cooldown. */}
               {remindAllTargets.length >= 2 && (
@@ -275,23 +277,23 @@ export function SettleTab({
                   onClick={() => doRemind(remindAllTargets, 'remind-all')}
                   disabled={busy === 'remind-all'}
                 >
-                  <BellRing size={15} /> Nhắc tất cả
+                  <BellRing size={15} /> {t.group.remindAll}
                 </Button>
               )}
             </Card>
           </motion.div>
 
-          {state.transfers.map((t, i) => {
-            const from = memberById.get(t.fromMemberId)
-            const to = memberById.get(t.toMemberId)
-            const iAmPayer = canAct(t.fromMemberId)
+          {state.transfers.map((tr, i) => {
+            const from = memberById.get(tr.fromMemberId)
+            const to = memberById.get(tr.toMemberId)
+            const iAmPayer = canAct(tr.fromMemberId)
             // Tôi là người NHẬN (người khác nợ tôi) → chỗ trống này dành cho nút "Nhắc".
-            const iAmRecipient = !iAmPayer && canAct(t.toMemberId)
+            const iAmRecipient = !iAmPayer && canAct(tr.toMemberId)
             const debtorIsUser = Boolean(from?.userId)
-            const reminded = onCooldown(t.fromMemberId)
-            const remindKey = `remind-${t.fromMemberId}`
+            const reminded = onCooldown(tr.fromMemberId)
+            const remindKey = `remind-${tr.fromMemberId}`
             return (
-              <motion.div key={`${t.fromMemberId}-${t.toMemberId}-${i}`} variants={fadeUpItem}>
+              <motion.div key={`${tr.fromMemberId}-${tr.toMemberId}-${i}`} variants={fadeUpItem}>
                 <Card className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-1 pt-0.5 shrink-0">
@@ -301,7 +303,7 @@ export function SettleTab({
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <span className="max-w-[8.5rem] text-right font-extrabold tnum leading-tight text-brand-600 dark:text-brand-300 sm:max-w-none">
-                        {formatVnd(t.amount)}
+                        {formatVnd(tr.amount)}
                       </span>
                     </div>
                   </div>
@@ -309,8 +311,8 @@ export function SettleTab({
                     {from?.name} → {to?.name}
                   </p>
                   {iAmPayer && (
-                    <Button size="sm" fullWidth onClick={() => onShowQr(t)}>
-                      <QrCode size={15} /> Thanh toán
+                    <Button size="sm" fullWidth onClick={() => onShowQr(tr)}>
+                      <QrCode size={15} /> {t.group.pay}
                     </Button>
                   )}
                   {iAmRecipient && debtorIsUser && (
@@ -318,16 +320,16 @@ export function SettleTab({
                       size="sm"
                       fullWidth
                       variant="secondary"
-                      onClick={() => doRemind([{ fromMemberId: t.fromMemberId, amount: t.amount }], remindKey)}
+                      onClick={() => doRemind([{ fromMemberId: tr.fromMemberId, amount: tr.amount }], remindKey)}
                       disabled={busy === remindKey || reminded}
                     >
                       {reminded ? (
                         <>
-                          <Check size={15} /> Đã nhắc
+                          <Check size={15} /> {t.group.reminded}
                         </>
                       ) : (
                         <>
-                          <Bell size={15} /> Nhắc trả nợ
+                          <Bell size={15} /> {t.group.remindDebt}
                         </>
                       )}
                     </Button>
@@ -340,8 +342,7 @@ export function SettleTab({
       )}
 
       <p className="text-xs text-faint text-center px-4 pt-1">
-        Splitz không giữ tiền. Người trả mở sheet thanh toán để quét QR hoặc đính kèm chứng từ,
-        rồi người nhận bấm “Đã nhận” để công nợ được trừ minh bạch.
+        {t.group.settleDisclaimer}
       </p>
     </motion.div>
   )

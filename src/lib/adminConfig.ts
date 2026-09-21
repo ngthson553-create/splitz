@@ -1,4 +1,5 @@
 import { getSupabase, isSupabaseConfigured } from './supabase/client'
+import { t } from './i18n'
 
 export type AdminConfigStatus = 'configured' | 'missing' | 'failed' | 'unknown'
 export type AdminConfigFlagCategory = 'ai' | 'growth' | 'ops' | 'auth' | 'system'
@@ -194,7 +195,7 @@ function normalizeMaintenance(row: unknown): AdminConfigMaintenance {
   const value = isRecord(row) ? row : {}
   return {
     enabled: boolValue(value.enabled),
-    title: text(value.title) ?? 'Bảo trì hệ thống',
+    title: text(value.title) ?? t().adminSystem.maintenanceTitle,
     message: text(value.message) ?? '',
     severity: normalizeSeverity(value.severity),
     startsAt: text(value.starts_at),
@@ -278,7 +279,7 @@ function snakeLimits(input: AdminConfigLimits) {
 function snakeMaintenance(input: Omit<AdminConfigMaintenance, 'updatedAt'>) {
   return {
     enabled: input.enabled,
-    title: cleanText(input.title) ?? 'Bảo trì hệ thống',
+    title: cleanText(input.title) ?? t().adminSystem.maintenanceTitle,
     message: cleanText(input.message) ?? '',
     severity: input.severity,
     starts_at: cleanText(input.startsAt),

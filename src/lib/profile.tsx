@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useAuth } from './auth'
+import { t } from './i18n'
 import type { Group, Member } from './types'
 
 export type Profile = {
@@ -96,7 +97,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
 export function useProfile(): ProfileValue {
   const ctx = useContext(ProfileContext)
-  if (!ctx) throw new Error('useProfile phải nằm trong ProfileProvider.')
+  if (!ctx)
+    throw new Error(t().errors.hookOutsideProvider.replace('{fn}', 'useProfile').replace('{provider}', 'ProfileProvider'))
   return ctx
 }
 

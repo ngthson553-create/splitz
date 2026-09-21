@@ -1,6 +1,8 @@
 /** Xung đột phiên bản: có người vừa sửa/xoá khoản chi → client phải tải lại, không ghi đè. */
+import { t } from '../i18n'
+
 export class ConflictError extends Error {
-  constructor(message = 'Khoản chi vừa được cập nhật. Vui lòng tải lại.') {
+  constructor(message: string = t().errors.expenseOutdated) {
     super(message)
     this.name = 'ConflictError'
   }

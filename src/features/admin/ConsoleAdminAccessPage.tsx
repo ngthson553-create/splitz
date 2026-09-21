@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertCircle, Ban, CheckCircle2, Clock3, RefreshCw, Search, ShieldCheck, UserPlus } from 'lucide-react'
 import { Avatar, Badge, Button, Card, EmptyState, Input, Segmented } from '../../components/ui'
+import { t, useT } from '../../lib/i18n'
+import { getIntlLocale } from '../../lib/i18n/locale'
 import {
   disableAdminAccess,
   loadAdminAccessSnapshot,
@@ -13,22 +15,12 @@ import {
   type AdminAccessStatus,
 } from '../../lib/adminAccess'
 
-const DATE_FORMAT = new Intl.DateTimeFormat('vi-VN', {
-  dateStyle: 'short',
-  timeStyle: 'short',
-})
-
 const ROLE_OPTIONS: { value: AdminAccessRole; label: string }[] = [
   { value: 'support', label: 'Support' },
   { value: 'readonly', label: 'Readonly' },
   { value: 'operator', label: 'Operator' },
   { value: 'owner', label: 'Owner' },
 ]
-
-const STATUS_LABEL: Record<AdminAccessStatus, string> = {
-  active: 'Đang bật',
-  disabled: 'Đã tắt',
-}
 
 const ROLE_LABEL: Record<AdminAccessRole, string> = {
   owner: 'Owner',
@@ -38,9 +30,10 @@ const ROLE_LABEL: Record<AdminAccessRole, string> = {
 }
 
 function formatDate(value: string | null | undefined) {
-  if (!value) return 'Chưa rõ'
+  const unknown = t().adminOps.access.unknown
+  if (!value) return unknown
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? 'Chưa rõ' : DATE_FORMAT.format(date)
+  return Number.isNaN(date.getTime()) ? unknown : new Intl.DateTimeFormat(getIntlLocale(), { dateStyle: 'short', timeStyle: 'short' }).format(date)
 }
 
 function roleTone(role: AdminAccessRole): 'brand' | 'pos' | 'muted' {
@@ -50,6 +43,7 @@ function roleTone(role: AdminAccessRole): 'brand' | 'pos' | 'muted' {
 }
 
 export function ConsoleAdminAccessPage() {
+  const t = useT()
   const [snapshot, setSnapshot] = useState<AdminAccessSnapshot | null>(null)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
@@ -79,11 +73,15 @@ export function ConsoleAdminAccessPage() {
 
   const summary = snapshot?.summary ?? { total: 0, active: 0, disabled: 0, owners: 0 }
   const adminIds = useMemo(() => new Set((snapshot?.admins ?? []).map((admin) => admin.userId)), [snapshot])
+  const statusLabel: Record<AdminAccessStatus, string> = {
+    active: t.adminOps.access.statusActive,
+    disabled: t.adminOps.access.statusDisabled,
+  }
 
   async function handleSearch() {
     const clean = query.trim()
     if (!clean) {
-      setNotice('Nhập email hoặc user id trước khi tìm profile.')
+      setNotice(t.adminOps.access.queryRequired)
       setCandidates([])
       return
     }
@@ -92,12 +90,12 @@ export function ConsoleAdminAccessPage() {
     const rows = await searchAdminAccessProfiles(undefined, clean)
     setCandidates(rows)
     setSearching(false)
-    if (rows.length === 0) setNotice('Không tìm thấy profile phù hợp.')
+    if (rows.length === 0) setNotice(t.adminOps.access.noProfiles)
   }
 
   async function handleGrant(candidate: AdminAccessCandidate) {
     if (!reason.trim() || !confirmed) {
-      setNotice('Cần nhập lý do và tick xác nhận trước khi cấp quyền admin.')
+      setNotice(t.adminOps.access.grantRequirements)
       return
     }
     const ok = await upsertAdminAccess(undefined, {
@@ -106,7 +104,7 @@ export function ConsoleAdminAccessPage() {
       status: 'active',
       reason: reason.trim(),
     })
-    setNotice(ok ? 'Đã gửi yêu cầu cập nhật quyền admin và ghi audit.' : 'Không lưu được quyền admin. Hãy kiểm tra Edge Function hoặc quyền owner.')
+    setNotice(ok ? t.adminOps.access.grantSubmitted : t.adminOps.access.grantFailed)
     if (ok) {
       setReason('')
       setConfirmed(false)
@@ -119,15 +117,15 @@ export function ConsoleAdminAccessPage() {
       setDisableTarget(userId)
       setDisableReason('')
       setDisableConfirmed(false)
-      setNotice('Nhập lý do và xác nhận trước khi tắt quyền admin.')
+      setNotice(t.adminOps.access.disableHint)
       return
     }
     if (!disableReason.trim() || !disableConfirmed) {
-      setNotice('Cần nhập lý do và tick xác nhận trước khi tắt quyền admin.')
+      setNotice(t.adminOps.access.disableRequirements)
       return
     }
     const ok = await disableAdminAccess(undefined, { userId, reason: disableReason.trim() })
-    setNotice(ok ? 'Đã tắt quyền admin và ghi audit.' : 'Không tắt được quyền admin. Có thể đây là owner cuối cùng hoặc function trả lỗi.')
+    setNotice(ok ? t.adminOps.access.disabled : t.adminOps.access.disableFailed)
     if (ok) {
       setDisableTarget(null)
       setDisableReason('')
@@ -147,23 +145,23 @@ export function ConsoleAdminAccessPage() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone="brand">Owner-only</Badge>
-                <Badge tone="muted">Không hiện trong app user</Badge>
+                <Badge tone="muted">{t.adminOps.access.badgeHidden}</Badge>
               </div>
-              <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-app">Quyền admin</h2>
+              <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-app">{t.adminOps.access.title}</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-muted">
-                Quản lý người được vào console bằng profile Supabase, role và trạng thái. Mọi thay đổi đều cần lý do audit và được xử lý qua Edge Function có guard server-side.
+                {t.adminOps.access.description}
               </p>
             </div>
           </div>
           <Button variant="secondary" onClick={() => void loadSnapshot()} disabled={loading}>
-            <RefreshCw size={16} /> Tải lại
+            <RefreshCw size={16} /> {t.adminOps.access.reload}
           </Button>
         </div>
 
         <div className="mt-5 grid gap-2 sm:grid-cols-4">
-          <SummaryPill label="Tổng admin" value={summary.total} />
-          <SummaryPill label="Đang bật" value={summary.active} tone="pos" />
-          <SummaryPill label="Đã tắt" value={summary.disabled} tone="muted" />
+          <SummaryPill label={t.adminOps.access.labelTotal} value={summary.total} />
+          <SummaryPill label={t.adminOps.access.labelActive} value={summary.active} tone="pos" />
+          <SummaryPill label={t.adminOps.access.labelDisabled} value={summary.disabled} tone="muted" />
           <SummaryPill label="Owner" value={summary.owners} tone="brand" />
         </div>
       </Card>
@@ -181,14 +179,14 @@ export function ConsoleAdminAccessPage() {
         <Card className="p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="font-bold text-app">Danh sách admin</h3>
-              <p className="text-xs text-muted">Profile đang hoặc từng có quyền console.</p>
+              <h3 className="font-bold text-app">{t.adminOps.access.listTitle}</h3>
+              <p className="text-xs text-muted">{t.adminOps.access.listSubtitle}</p>
             </div>
-            <Badge tone="muted">Cập nhật {formatDate(snapshot?.checkedAt)}</Badge>
+            <Badge tone="muted">{t.adminOps.access.updatedAt({ time: formatDate(snapshot?.checkedAt) })}</Badge>
           </div>
 
           {loading ? (
-            <EmptyState icon={<Clock3 size={24} />} title="Đang tải quyền admin" description="Console đang lấy snapshot qua admin-access." />
+            <EmptyState icon={<Clock3 size={24} />} title={t.adminOps.access.loadingTitle} description={t.adminOps.access.loadingDescription} />
           ) : snapshot && snapshot.admins.length > 0 ? (
             <div className="mt-4 space-y-3">
               {snapshot.admins.map((admin) => (
@@ -198,13 +196,13 @@ export function ConsoleAdminAccessPage() {
                       <Avatar name={admin.displayName ?? admin.email} src={admin.avatarUrl} />
                       <div className="min-w-0">
                         <p className="truncate font-bold text-app">{admin.email}</p>
-                        <p className="text-xs text-muted">{admin.displayName ?? 'Chưa có tên hiển thị'}</p>
-                        <p className="mt-1 text-xs text-faint">Tạo bởi {admin.createdByEmail ?? 'không rõ'} · {formatDate(admin.createdAt)}</p>
+                        <p className="text-xs text-muted">{admin.displayName ?? t.adminOps.access.noDisplayName}</p>
+                        <p className="mt-1 text-xs text-faint">{t.adminOps.access.createdBy({ name: admin.createdByEmail ?? t.adminOps.access.unknownCreator, time: formatDate(admin.createdAt) })}</p>
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
                       <Badge tone={roleTone(admin.role)}>{ROLE_LABEL[admin.role]}</Badge>
-                      <Badge tone={admin.status === 'active' ? 'pos' : 'muted'}>{STATUS_LABEL[admin.status]}</Badge>
+                      <Badge tone={admin.status === 'active' ? 'pos' : 'muted'}>{statusLabel[admin.status]}</Badge>
                     </div>
                   </div>
 
@@ -212,15 +210,15 @@ export function ConsoleAdminAccessPage() {
                     <div className="mt-3 border-t border-[var(--border)] pt-3">
                       {disableTarget === admin.userId && (
                         <div className="mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                          <Input value={disableReason} onChange={(event) => setDisableReason(event.target.value)} placeholder="Lý do tắt quyền" />
+                          <Input value={disableReason} onChange={(event) => setDisableReason(event.target.value)} placeholder={t.adminOps.access.disableReasonPlaceholder} />
                           <label className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-solid)] px-3 text-xs font-semibold text-muted">
                             <input type="checkbox" checked={disableConfirmed} onChange={(event) => setDisableConfirmed(event.target.checked)} />
-                            Xác nhận
+                            {t.adminOps.access.confirm}
                           </label>
                         </div>
                       )}
                       <Button variant="ghost" size="sm" onClick={() => void handleDisable(admin.userId)}>
-                        <Ban size={15} /> Tắt quyền
+                        <Ban size={15} /> {t.adminOps.access.disable}
                       </Button>
                     </div>
                   )}
@@ -228,7 +226,7 @@ export function ConsoleAdminAccessPage() {
               ))}
             </div>
           ) : (
-            <EmptyState icon={<ShieldCheck size={24} />} title="Chưa có dữ liệu admin" description="Nếu owner đã được seed, hãy kiểm tra Edge Function admin-access." />
+            <EmptyState icon={<ShieldCheck size={24} />} title={t.adminOps.access.emptyTitle} description={t.adminOps.access.emptyDescription} />
           )}
         </Card>
 
@@ -236,37 +234,37 @@ export function ConsoleAdminAccessPage() {
           <Card className="p-5">
             <div className="flex items-center gap-2">
               <UserPlus size={18} className="text-brand-600 dark:text-brand-300" />
-              <h3 className="font-bold text-app">Thêm admin</h3>
+              <h3 className="font-bold text-app">{t.adminOps.access.addTitle}</h3>
             </div>
-            <p className="mt-1 text-xs leading-5 text-muted">Tìm profile đã đăng nhập Splitz, chọn role, nhập lý do audit rồi cấp quyền.</p>
+            <p className="mt-1 text-xs leading-5 text-muted">{t.adminOps.access.addSubtitle}</p>
 
             <div className="mt-4 space-y-3">
               <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Email hoặc user id" />
+                <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.adminOps.access.queryPlaceholder} />
                 <Button variant="secondary" onClick={() => void handleSearch()} disabled={searching}>
-                  <Search size={16} /> Tìm profile
+                  <Search size={16} /> {t.adminOps.access.searchProfile}
                 </Button>
               </div>
 
               <div>
-                <p className="mb-2 text-[13px] font-semibold text-muted">Role cấp quyền</p>
+                <p className="mb-2 text-[13px] font-semibold text-muted">{t.adminOps.access.roleLabel}</p>
                 <Segmented options={ROLE_OPTIONS} value={selectedRole} onChange={setSelectedRole} />
               </div>
 
               <label className="block space-y-1.5">
-                <span className="text-[13px] font-semibold text-muted">Lý do audit</span>
+                <span className="text-[13px] font-semibold text-muted">{t.adminOps.access.reasonLabel}</span>
                 <textarea
                   value={reason}
                   onChange={(event) => setReason(event.target.value)}
                   rows={3}
                   className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-sunken)] px-3.5 py-3 text-sm text-app outline-none transition placeholder:text-faint focus:border-brand-400 focus:ring-2 focus:ring-brand-400/30"
-                  placeholder="Ví dụ: thêm support vận hành trong giai đoạn test nội bộ"
+                  placeholder={t.adminOps.access.reasonPlaceholder}
                 />
               </label>
 
               <label className="flex items-start gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3 text-xs font-semibold text-muted">
                 <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} className="mt-0.5" />
-                <span>Tôi xác nhận đây là profile đúng và thay đổi này sẽ được ghi vào audit log.</span>
+                <span>{t.adminOps.access.confirmText}</span>
               </label>
             </div>
 
@@ -278,13 +276,13 @@ export function ConsoleAdminAccessPage() {
                       <Avatar name={candidate.displayName ?? candidate.email} src={candidate.avatarUrl} size="sm" />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-bold text-app">{candidate.email}</p>
-                        <p className="text-xs text-muted">{candidate.displayName ?? 'Chưa có tên'} · {formatDate(candidate.createdAt)}</p>
+                        <p className="text-xs text-muted">{candidate.displayName ?? t.adminOps.access.noName} · {formatDate(candidate.createdAt)}</p>
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-wrap gap-2">
-                      {(candidate.alreadyAdmin || adminIds.has(candidate.userId)) && <Badge tone="muted">Đã có quyền</Badge>}
+                      {(candidate.alreadyAdmin || adminIds.has(candidate.userId)) && <Badge tone="muted">{t.adminOps.access.alreadyAdmin}</Badge>}
                       <Button size="sm" onClick={() => void handleGrant(candidate)}>
-                        <CheckCircle2 size={15} /> Cấp quyền
+                        <CheckCircle2 size={15} /> {t.adminOps.access.grant}
                       </Button>
                     </div>
                   </div>
@@ -296,7 +294,7 @@ export function ConsoleAdminAccessPage() {
           <Card className="p-5">
             <div className="flex items-center gap-2">
               <Clock3 size={18} className="text-brand-600 dark:text-brand-300" />
-              <h3 className="font-bold text-app">Audit gần đây</h3>
+              <h3 className="font-bold text-app">{t.adminOps.access.recentAuditTitle}</h3>
             </div>
             <div className="mt-4 space-y-2">
               {(snapshot?.recentChanges ?? []).length > 0 ? (
@@ -307,7 +305,7 @@ export function ConsoleAdminAccessPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted">Chưa có audit cho quyền admin.</p>
+                <p className="text-sm text-muted">{t.adminOps.access.noRecentAudit}</p>
               )}
             </div>
           </Card>

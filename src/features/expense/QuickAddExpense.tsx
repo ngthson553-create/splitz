@@ -4,6 +4,7 @@ import { Sheet } from '../../components/Sheet'
 import { Button } from '../../components/ui'
 import { useStore } from '../../lib/store'
 import { formatCompactVnd } from '../../lib/format'
+import { useT } from '../../lib/i18n'
 import { totalGroupSpend } from '../../lib/settlement/balances'
 import { ExpenseSheet } from './ExpenseSheet'
 
@@ -17,6 +18,7 @@ export function QuickAddExpense({
   onCreateGroup: () => void
 }) {
   const { groups, loading, error, reload } = useStore()
+  const t = useT()
   // Lưu ID (không lưu object) để luôn lấy bản nhóm MỚI NHẤT từ store khi poll realtime
   // cập nhật — tránh giữ snapshot cũ. `picked` = nhóm tươi theo id.
   const [pickedId, setPickedId] = useState<string | null>(null)
@@ -52,15 +54,13 @@ export function QuickAddExpense({
 
   if (loading && groups.length === 0) {
     return (
-      <Sheet open={open} onClose={onClose} title="Thêm khoản chi">
+      <Sheet open={open} onClose={onClose} title={t.expense.addTitle}>
         <div className="flex flex-col items-center text-center py-8 px-4">
           <div className="grid place-items-center h-16 w-16 rounded-2xl gradient-brand-soft text-white shadow-glow mb-4">
             <Loader2 size={26} className="animate-spin" />
           </div>
-          <h3 className="font-bold text-app">Đang tải nhóm</h3>
-          <p className="mt-1.5 text-sm text-muted max-w-xs">
-            Splitz đang lấy danh sách nhóm để bạn chọn nơi ghi khoản chi.
-          </p>
+          <h3 className="font-bold text-app">{t.expense.loadingGroups}</h3>
+          <p className="mt-1.5 text-sm text-muted max-w-xs">{t.expense.loadingGroupsHint}</p>
         </div>
       </Sheet>
     )
@@ -68,15 +68,15 @@ export function QuickAddExpense({
 
   if (error && groups.length === 0) {
     return (
-      <Sheet open={open} onClose={onClose} title="Thêm khoản chi">
+      <Sheet open={open} onClose={onClose} title={t.expense.addTitle}>
         <div className="flex flex-col items-center text-center py-8 px-4">
           <div className="grid place-items-center h-16 w-16 rounded-2xl bg-neg/12 text-neg mb-4">
             <TriangleAlert size={26} />
           </div>
-          <h3 className="font-bold text-app">Không tải được nhóm</h3>
+          <h3 className="font-bold text-app">{t.expense.loadGroupsFailed}</h3>
           <p className="mt-1.5 text-sm text-muted max-w-xs">{error}</p>
           <Button size="lg" variant="secondary" className="mt-5" onClick={() => void reload()}>
-            <RefreshCw size={18} /> Thử lại
+            <RefreshCw size={18} /> {t.common.retry}
           </Button>
         </div>
       </Sheet>
@@ -86,15 +86,13 @@ export function QuickAddExpense({
   // Chưa có nhóm.
   if (groups.length === 0) {
     return (
-      <Sheet open={open} onClose={onClose} title="Thêm khoản chi">
+      <Sheet open={open} onClose={onClose} title={t.expense.addTitle}>
         <div className="flex flex-col items-center text-center py-8 px-4">
           <div className="grid place-items-center h-16 w-16 rounded-2xl gradient-brand-soft text-white shadow-glow mb-4 animate-float">
             <Sparkles size={26} />
           </div>
-          <h3 className="font-bold text-app">Bạn chưa có nhóm nào</h3>
-          <p className="mt-1.5 text-sm text-muted max-w-xs">
-            Hãy tạo một nhóm trước, sau đó bạn có thể ghi khoản chi và chia tiền cho cả nhóm.
-          </p>
+          <h3 className="font-bold text-app">{t.expense.noGroups}</h3>
+          <p className="mt-1.5 text-sm text-muted max-w-xs">{t.expense.noGroupsHint}</p>
           <Button
             size="lg"
             className="mt-5"
@@ -103,7 +101,7 @@ export function QuickAddExpense({
               onCreateGroup()
             }}
           >
-            <FolderPlus size={18} /> Tạo nhóm đầu tiên
+            <FolderPlus size={18} /> {t.expense.createFirstGroup}
           </Button>
         </div>
       </Sheet>
@@ -112,7 +110,7 @@ export function QuickAddExpense({
 
   // Có nhiều nhóm → chọn nhóm.
   return (
-    <Sheet open={open} onClose={onClose} title="Ghi vào nhóm nào?">
+    <Sheet open={open} onClose={onClose} title={t.expense.pickGroupTitle}>
       <div className="space-y-1.5 py-1">
         {groups.map((g) => (
           <button
@@ -126,7 +124,7 @@ export function QuickAddExpense({
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-sm truncate">{g.name}</p>
               <p className="text-xs text-muted">
-                {g.members.length} người · {formatCompactVnd(totalGroupSpend(g))}
+                {t.expense.nPeople({ n: g.members.length })} · {formatCompactVnd(totalGroupSpend(g))}
               </p>
             </div>
             <ChevronRight size={18} className="text-faint shrink-0" />

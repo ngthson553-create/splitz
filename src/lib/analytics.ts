@@ -1,10 +1,11 @@
 // Analytics (PostHog) + crash reporting (Sentry). Tự bật khi có env; không có → no-op.
 import posthog from 'posthog-js'
 import * as Sentry from '@sentry/react'
+import { runtimeEnv } from './env'
 
-const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY?.trim()
-const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST?.trim() || 'https://us.i.posthog.com'
-const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN?.trim()
+const POSTHOG_KEY = runtimeEnv('VITE_POSTHOG_KEY')
+const POSTHOG_HOST = runtimeEnv('VITE_POSTHOG_HOST') || 'https://us.i.posthog.com'
+const SENTRY_DSN = runtimeEnv('VITE_SENTRY_DSN')
 
 let phReady = false
 let sentryReady = false

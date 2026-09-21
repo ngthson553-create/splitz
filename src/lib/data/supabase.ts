@@ -11,6 +11,7 @@ import { getSupabase } from '../supabase/client'
 import { colorForIndex } from '../format'
 import { randomGroupEmoji } from '../groupFactory'
 import { ConflictError } from './errors'
+import { t } from '../i18n'
 import type { GroupRepository } from './repository'
 
 // ── Row types ───────────────────────────────────────────────────────────
@@ -348,7 +349,7 @@ export class SupabaseGroupRepository implements GroupRepository {
     }
 
     const created = await this.get(id)
-    if (!created) throw new Error('Không tải được nhóm vừa tạo.')
+    if (!created) throw new Error(t().errors.createdGroupMissing)
     return created
   }
 
@@ -467,7 +468,7 @@ export class SupabaseGroupRepository implements GroupRepository {
       p_amount: amount,
     })
     if (error) throw error
-    if (typeof data !== 'string' || !data) throw new Error('Không lấy được mã quyết toán vừa tạo.')
+    if (typeof data !== 'string' || !data) throw new Error(t().errors.createdSettlementIdMissing)
     return data
   }
 

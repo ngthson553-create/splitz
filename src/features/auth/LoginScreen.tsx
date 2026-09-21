@@ -1,15 +1,21 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Loader2, Wallet } from 'lucide-react'
-import { Button } from '../../components/ui'
+import { Button, Field, Input } from '../../components/ui'
 import { useAuth } from '../../lib/auth'
+import { useT } from '../../lib/i18n'
 import { useToast } from '../../components/Toast'
 import { trackEvent } from '../../lib/analytics'
 
 export function LoginScreen() {
-  const { signInWithGoogle, signInWithZalo, zaloEnabled } = useAuth()
+  const { signInWithGoogle, signInWithZalo, zaloEnabled, passwordLoginEnabled, signInWithPassword, signUpWithPassword } =
+    useAuth()
   const toast = useToast()
+  const t = useT()
   const [busy, setBusy] = useState(false)
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   async function onGoogle() {
     trackEvent('sign_in_initiated', { provider: 'google' })
@@ -18,7 +24,7 @@ export function LoginScreen() {
       await signInWithGoogle()
       // Trình duyệt sẽ điều hướng sang Google; nếu quay lại đây tức là có lỗi.
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Đăng nhập thất bại.')
+      toast.error(e instanceof Error ? e.message : t.auth.signInFailed)
       setBusy(false)
     }
   }
@@ -29,7 +35,35 @@ export function LoginScreen() {
     try {
       await signInWithZalo()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Đăng nhập Zalo thất bại.')
+      toast.error(e instanceof Error ? e.message : t.auth.zaloSignInFailed)
+      setBusy(false)
+    }
+  }
+
+  async function onPassword(e: FormEvent) {
+    e.preventDefault()
+    const mail = email.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
+      toast.error(t.auth.emailInvalid)
+      return
+    }
+    if (password.length < 6) {
+      toast.error(t.auth.passwordTooShort)
+      return
+    }
+    setBusy(true)
+    trackEvent('sign_in_initiated', { provider: 'email' })
+    try {
+      const immediate =
+        mode === 'signin' ? await signInWithPassword(mail, password) : await signUpWithPassword(mail, password)
+      if (!immediate) {
+        // GoTrue không tự xác nhận email → chưa có session ngay.
+        toast.show(t.auth.checkEmailToConfirm)
+        setMode('signin')
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t.auth.signInFailed)
+    } finally {
       setBusy(false)
     }
   }
@@ -43,13 +77,49 @@ export function LoginScreen() {
         </div>
         <h1 className="text-3xl font-extrabold tracking-tight text-gradient">Splitz</h1>
         <p className="mt-2 text-sm text-muted text-center max-w-xs">
-          Chia tiền nhóm thông minh — minh bạch, nhanh gọn, tạo QR chuyển khoản tức thì.
+          {t.auth.tagline}
         </p>
 
         <div className="w-full mt-10 space-y-3">
+          {passwordLoginEnabled && (
+            <form onSubmit={onPassword} className="space-y-3" noValidate>
+              <Field label={t.auth.emailLabel}>
+                <Input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t.auth.emailPlaceholder}
+                  disabled={busy}
+                />
+              </Field>
+              <Field label={t.auth.passwordLabel}>
+                <Input
+                  type="password"
+                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t.auth.passwordPlaceholder}
+                  disabled={busy}
+                />
+              </Field>
+              <Button type="submit" fullWidth size="lg" disabled={busy}>
+                {busy ? <Loader2 size={18} className="animate-spin" /> : null}
+                {mode === 'signin' ? t.auth.signInButton : t.auth.signUpButton}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+                className="w-full text-center text-xs font-semibold text-brand-600 dark:text-brand-300"
+              >
+                {mode === 'signin' ? t.auth.noAccountSwitch : t.auth.hasAccountSwitch}
+              </button>
+            </form>
+          )}
+
           <Button fullWidth size="lg" onClick={onGoogle} disabled={busy}>
             {busy ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
-            Tiếp tục với Google
+            {t.auth.continueWithGoogle}
           </Button>
 
           {zaloEnabled ? (
@@ -61,7 +131,7 @@ export function LoginScreen() {
               style={{ background: '#0068FF' }}
             >
               <ZaloIcon />
-              Tiếp tục với Zalo
+              {t.auth.continueWithZalo}
             </button>
           ) : (
             <button
@@ -70,24 +140,24 @@ export function LoginScreen() {
               className="w-full h-12 px-5 rounded-2xl inline-flex items-center justify-center gap-2 font-semibold text-[15px] bg-[var(--surface-solid)] border border-[var(--border)] text-faint cursor-not-allowed"
             >
               <ZaloIcon />
-              Tiếp tục với Zalo
+              {t.auth.continueWithZalo}
               <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--surface-2)] text-muted">
-                Sắp có
+                {t.auth.comingSoon}
               </span>
             </button>
           )}
         </div>
 
         <p className="mt-8 text-xs text-faint text-center max-w-xs leading-relaxed">
-          Khi đăng nhập, bạn đồng ý với{' '}
+          {t.auth.agreePrefix}{' '}
           <Link to="/terms" className="text-brand-600 dark:text-brand-300 font-semibold underline">
-            Điều khoản sử dụng
+            {t.auth.termsLink}
           </Link>{' '}
-          và{' '}
+          {t.auth.agreeAnd}{' '}
           <Link to="/privacy" className="text-brand-600 dark:text-brand-300 font-semibold underline">
-            Chính sách bảo mật
+            {t.auth.privacyLink}
           </Link>{' '}
-          của Splitz.
+          {t.auth.agreeSuffix}
         </p>
       </div>
     </div>

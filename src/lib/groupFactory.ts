@@ -1,5 +1,6 @@
 import { colorForIndex } from './format'
 import { newId } from './id'
+import { t } from './i18n'
 import type { Group, Member } from './types'
 
 const GROUP_EMOJIS = ['💸', '🍜', '✈️', '🏠', '🎉', '⚽', '🏖️', '☕', '🎬', '🛒']
@@ -17,7 +18,7 @@ export function createGroup(name: string, memberNames: string[] = []): Group {
     .map((n, i) => createMember(n, i))
   return {
     id: newId('grp'),
-    name: name.trim() || 'Nhóm mới',
+    name: name.trim() || t().common.newGroup,
     emoji: randomGroupEmoji(),
     createdAt: now,
     updatedAt: now,

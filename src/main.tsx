@@ -4,6 +4,7 @@ import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import './index.css'
 import { initAnalytics } from './lib/analytics'
 import { ThemeProvider } from './lib/theme'
+import { I18nProvider } from './lib/i18n'
 import { StoreProvider } from './lib/store'
 import { NotificationsProvider } from './lib/notifications'
 import { ProfileProvider } from './lib/profile'
@@ -22,6 +23,7 @@ import {
   ProfileSettingsScreen,
   BankSettingsScreen,
   AppearanceSettingsScreen,
+  LanguageSettingsScreen,
   DataSettingsScreen,
 } from './features/settings/SettingsScreens'
 import { TermsScreen, PrivacyScreen } from './features/legal/LegalScreens'
@@ -60,6 +62,7 @@ const router = createBrowserRouter([
       { path: '/settings/profile', element: <ProfileSettingsScreen /> },
       { path: '/settings/bank', element: <BankSettingsScreen /> },
       { path: '/settings/appearance', element: <AppearanceSettingsScreen /> },
+      { path: '/settings/language', element: <LanguageSettingsScreen /> },
       { path: '/settings/data', element: <DataSettingsScreen /> },
       { path: '/faq', element: <FaqScreen /> },
     ],
@@ -72,6 +75,7 @@ initAnalytics()
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
+      <I18nProvider>
       <ThemeProvider>
         <ToastProvider>
           <AuthProvider>
@@ -87,6 +91,7 @@ createRoot(document.getElementById('root')!).render(
           </AuthProvider>
         </ToastProvider>
       </ThemeProvider>
+      </I18nProvider>
     </ErrorBoundary>
   </StrictMode>,
 )
