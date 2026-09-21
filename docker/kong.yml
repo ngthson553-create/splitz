@@ -1,0 +1,51 @@
+# Kong DB-less — định tuyến API self-host (docker-compose.supabase.yml).
+# Sao y cách đặt route của supabase/docker thời Kong: prefix giữ nguyên ngữ nghĩa
+# của platform (/auth/v1, /rest/v1, /storage/v1, /functions/v1).
+_format_version: "2.1"
+_transform: true
+
+services:
+  # ── Auth (GoTrue) — GoTrue tự phục vụ dưới prefix /auth/v1 ──
+  - name: auth-v1
+    url: http://auth:9999/auth/v1
+    routes:
+      - name: auth-v1-all
+        strip_path: true
+        paths:
+          - /auth/v1
+    plugins:
+      - name: cors
+
+  # ── REST (PostgREST) — phục vụ ở gốc, Kong bỏ prefix /rest/v1 ──
+  - name: rest-v1
+    url: http://rest:3000
+    routes:
+      - name: rest-v1-all
+        strip_path: true
+        paths:
+          - /rest/v1
+    plugins:
+      - name: cors
+
+  # ── Storage — phục vụ ở gốc, Kong bỏ prefix /storage/v1 ──
+  - name: storage-v1
+    url: http://storage:8000
+    routes:
+      - name: storage-v1-all
+        strip_path: true
+        paths:
+          - /storage/v1
+    plugins:
+      - name: cors
+
+  # ── Edge Functions — main service bỏ prefix /functions/v1 rồi dispatch
+  #    theo tên function (xem docker/functions-runtime/main/index.ts) ──
+  - name: functions-v1
+    url: http://functions:9000
+    routes:
+      - name: functions-v1-all
+        strip_path: true
+        paths:
+          - /functions/v1
+    plugins:
+      - name: cors

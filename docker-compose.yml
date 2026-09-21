@@ -1,0 +1,26 @@
+# Splitz — bản Docker tối giản: CHỈ app frontend, chế độ LOCAL.
+#
+# Một lệnh là chạy: docker compose up -d --build  →  http://localhost:8080
+# Không Supabase → app tự chạy chế độ local (dữ liệu trong localStorage của
+# trình duyệt), đúng như `npm run dev` không có .env.
+#
+# Muốn đầy đủ backend (đăng nhập, đồng bộ nhiều thiết bị): xem
+# docker-compose.supabase.yml và docs/SELF_HOSTING.md.
+
+services:
+  splitz:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: splitz
+    container_name: splitz-app
+    restart: unless-stopped
+    ports:
+      - "${SPLITZ_PORT:-8080}:80"
+    # Cấu hình tuỳ chọn (đổi env rồi up lại là app nhận cấu hình mới, không
+    # cần build lại image — xem docker-entrypoint.sh):
+    #   SPLITZ_SITE_URL:           https://splitz.example.com
+    #   SPLITZ_SUPABASE_URL:       http://localhost:8080-supabase (không dùng ở bản này)
+    #   SPLITZ_SUPABASE_ANON_KEY:  publishable key
+    environment:
+      SPLITZ_SITE_URL: ${SPLITZ_SITE_URL:-}

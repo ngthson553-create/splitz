@@ -80,4 +80,17 @@ export const auth = {
   cancelledOrNoCode: 'Bạn đã huỷ hoặc Zalo không trả mã đăng nhập.',
   signInFailedTitle: 'Đăng nhập thất bại',
   backToLogin: 'Về trang đăng nhập',
+
+  // Đăng nhập email + mật khẩu (chỉ bản self-host bật)
+  // emailLabel tái dùng key có sẵn ở bước OTP Zalo phía trên.
+  emailPlaceholder: 'ban@email.com',
+  passwordLabel: 'Mật khẩu',
+  passwordPlaceholder: '••••••••',
+  signInButton: 'Đăng nhập',
+  signUpButton: 'Tạo tài khoản',
+  noAccountSwitch: 'Chưa có tài khoản? Tạo tài khoản',
+  hasAccountSwitch: 'Đã có tài khoản? Đăng nhập',
+  passwordTooShort: 'Mật khẩu cần ít nhất 6 ký tự.',
+  emailInvalid: 'Email không hợp lệ.',
+  checkEmailToConfirm: 'Kiểm tra email để xác nhận tài khoản trước khi đăng nhập.',
 }

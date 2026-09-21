@@ -83,4 +83,18 @@ export const auth: typeof vi.auth = {
   cancelledOrNoCode: 'You cancelled, or Zalo did not return a login code.',
   signInFailedTitle: 'Sign in failed',
   backToLogin: 'Back to sign in',
+
+  // Email + password sign-in (self-host only, behind a flag)
+  // emailLabel reuses the existing key from the Zalo OTP step above.
+  emailPlaceholder: 'you@email.com',
+  passwordLabel: 'Password',
+  passwordPlaceholder: '••••••••',
+  signInButton: 'Sign in',
+  signUpButton: 'Create account',
+  noAccountSwitch: "No account yet? Create one",
+  hasAccountSwitch: 'Already have an account? Sign in',
+  passwordTooShort: 'Password needs at least 6 characters.',
+  emailInvalid: 'Invalid email address.',
+  checkEmailToConfirm: 'Check your email to confirm your account before signing in.',
+
 }

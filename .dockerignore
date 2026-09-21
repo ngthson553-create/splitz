@@ -1,0 +1,23 @@
+# Không gửi vào build context — node_modules 365 MB + .git làm chậm build image.
+node_modules
+dist
+dist-ssr
+dev-dist
+.git
+.gitignore
+.vscode
+.idea
+coverage
+test-results
+*.log
+npm-debug.log*
+.DS_Store
+
+# Env local KHÔNG bao giờ vào image (image đọc cấu hình qua biến môi trường
+# container lúc chạy, xem docker-entrypoint.sh).
+.env
+.env.*
+!.env.example
+
+# Ghi chú: .env.example được giữ lại trong context để tham chiếu biến, không
+# ảnh hưởng build vì Vite chỉ đọc .env* được COPY vào và ta không COPY env nào.

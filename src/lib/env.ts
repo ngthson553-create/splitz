@@ -15,6 +15,8 @@ export type RuntimeEnvName =
   | 'VITE_POSTHOG_HOST'
   | 'VITE_POSTHOG_KEY'
   | 'VITE_SENTRY_DSN'
+  /** Chỉ bản self-host bật: đăng nhập email + mật khẩu thay cho OAuth. */
+  | 'VITE_ENABLE_PASSWORD_LOGIN'
 
 export interface SplitzRuntimeConfig {
   [key: string]: string | undefined

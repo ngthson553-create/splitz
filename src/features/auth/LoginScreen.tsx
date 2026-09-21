@@ -1,17 +1,21 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Loader2, Wallet } from 'lucide-react'
-import { Button } from '../../components/ui'
+import { Button, Field, Input } from '../../components/ui'
 import { useAuth } from '../../lib/auth'
 import { useT } from '../../lib/i18n'
 import { useToast } from '../../components/Toast'
 import { trackEvent } from '../../lib/analytics'
 
 export function LoginScreen() {
-  const { signInWithGoogle, signInWithZalo, zaloEnabled } = useAuth()
+  const { signInWithGoogle, signInWithZalo, zaloEnabled, passwordLoginEnabled, signInWithPassword, signUpWithPassword } =
+    useAuth()
   const toast = useToast()
   const t = useT()
   const [busy, setBusy] = useState(false)
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   async function onGoogle() {
     trackEvent('sign_in_initiated', { provider: 'google' })
@@ -36,6 +40,34 @@ export function LoginScreen() {
     }
   }
 
+  async function onPassword(e: FormEvent) {
+    e.preventDefault()
+    const mail = email.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) {
+      toast.error(t.auth.emailInvalid)
+      return
+    }
+    if (password.length < 6) {
+      toast.error(t.auth.passwordTooShort)
+      return
+    }
+    setBusy(true)
+    trackEvent('sign_in_initiated', { provider: 'email' })
+    try {
+      const immediate =
+        mode === 'signin' ? await signInWithPassword(mail, password) : await signUpWithPassword(mail, password)
+      if (!immediate) {
+        // GoTrue không tự xác nhận email → chưa có session ngay.
+        toast.show(t.auth.checkEmailToConfirm)
+        setMode('signin')
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t.auth.signInFailed)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="relative min-h-dvh flex flex-col">
       <div className="app-aurora" />
@@ -49,6 +81,42 @@ export function LoginScreen() {
         </p>
 
         <div className="w-full mt-10 space-y-3">
+          {passwordLoginEnabled && (
+            <form onSubmit={onPassword} className="space-y-3" noValidate>
+              <Field label={t.auth.emailLabel}>
+                <Input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t.auth.emailPlaceholder}
+                  disabled={busy}
+                />
+              </Field>
+              <Field label={t.auth.passwordLabel}>
+                <Input
+                  type="password"
+                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t.auth.passwordPlaceholder}
+                  disabled={busy}
+                />
+              </Field>
+              <Button type="submit" fullWidth size="lg" disabled={busy}>
+                {busy ? <Loader2 size={18} className="animate-spin" /> : null}
+                {mode === 'signin' ? t.auth.signInButton : t.auth.signUpButton}
+              </Button>
+              <button
+                type="button"
+                onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+                className="w-full text-center text-xs font-semibold text-brand-600 dark:text-brand-300"
+              >
+                {mode === 'signin' ? t.auth.noAccountSwitch : t.auth.hasAccountSwitch}
+              </button>
+            </form>
+          )}
+
           <Button fullWidth size="lg" onClick={onGoogle} disabled={busy}>
             {busy ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
             {t.auth.continueWithGoogle}

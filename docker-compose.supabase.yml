@@ -1,0 +1,283 @@
+# Splitz full self-host: app + Supabase stack (Postgres 17, GoTrue, PostgREST,
+# Storage + imgproxy, Edge Functions, Kong gateway, Studio dashboard).
+#
+# CHẠY: xem docs/SELF_HOSTING.md — tóm tắt:
+#   cp .env.docker.example .env.docker   # sinh mật khẩu/JWT theo hướng dẫn trong file
+#   docker compose -f docker-compose.supabase.yml --env-file .env.docker up -d --build
+#
+# 34 migration trong supabase/migrations chạy TỰ ĐỘNG (service `migrations`
+# one-shot, đúng thứ tự tên file) sau khi db bootstrap xong auth schema.
+#
+# Cổng mặc định: app 8080 · API (Kong) 8081 · Studio 8082 (đổi qua .env.docker).
+#
+# Bỏ qua realtime/supavisor có chủ ý: Splitz đồng bộ bằng polling 20s, không
+# dùng kênh realtime nào (src/lib/store.tsx).
+
+name: splitz-selfhost
+
+services:
+  # ───────────────────────── PostgreSQL ─────────────────────────
+  db:
+    image: supabase/postgres:17.6.1.136
+    container_name: splitz-db
+    restart: unless-stopped
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Chạy 34 migration theo thứ tự tên file (one-shot) ──
+  migrations:
+    image: supabase/postgres:17.6.1.136
+    container_name: splitz-migrations
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./supabase/migrations:/migrations:ro
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        echo "Đợi auth schema (image bootstrap ở lần init đầu)…"
+        until psql "postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres" -tAc \
+          "select 1 from information_schema.schemata where schema_name='auth'" | grep -q 1; do
+          sleep 2
+        done
+        for f in /migrations/*.sql; do
+          echo "→ Áp dụng $$f"
+          psql "postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres" \
+            -v ON_ERROR_STOP=1 --single-transaction -f "$$f"
+        done
+        echo "Hoàn tất toàn bộ migration."
+    restart: "no"
+
+  # ───────────────────────── Auth (GoTrue) ─────────────────────────
+  auth:
+    image: supabase/gotrue:v2.196.0
+    container_name: splitz-auth
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgresql://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: ${SITE_URL}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      # Self-host không có SMTP mặc định → tự xác nhận email để đăng nhập được
+      # ngay. Có SMTP: đặt ENABLE_EMAIL_AUTOCONFIRM=false + điền SMTP_* bên dưới.
+      GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM:-true}
+      # Email + mật khẩu — phương thức đăng nhập cho self-host (không cần tạo
+      # project Google Cloud như OAuth). Tắt được qua ENABLE_EMAIL_SIGNUP=false.
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP:-true}
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-}
+      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9999/health",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ───────────────────────── REST (PostgREST) ─────────────────────────
+  rest:
+    image: postgrest/postgrest:v14.17
+    container_name: splitz-rest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgresql://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+
+  # ───────────────────────── Storage + imgproxy ─────────────────────────
+  storage:
+    image: supabase/storage-api:v1.74.0
+    container_name: splitz-storage
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - storage-data:/var/lib/storage
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgresql://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      FILE_STORAGE_BACKEND: disk
+      PORT: 8000
+      REGION: ${STORAGE_REGION:-local}
+      GLOBAL_S3_BUCKET: ${STORAGE_BUCKET:-splitz-attachments}
+      ENABLE_IMAGE_TRANSFORMATION: "true"
+      IMGPROXY_URL: http://imgproxy:8080
+      IMGPROXY_REQUEST_SIGNING_KEY: ${IMGPROXY_REQUEST_SIGNING_KEY}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8000/status",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  imgproxy:
+    image: darthsim/imgproxy:v3.31.4
+    container_name: splitz-imgproxy
+    restart: unless-stopped
+    environment:
+      IMGPROXY_ENABLE_WEBP_DETECTION: "true"
+      IMGPROXY_USE_ETAG: "true"
+      IMGPROXY_REQUEST_SIGNING_KEY: ${IMGPROXY_REQUEST_SIGNING_KEY}
+
+  # ───────────────────────── Edge Functions ─────────────────────────
+  # 18 function của Splitz nằm nguyên trong supabase/functions; bootstrap
+  # main-service + import map nằm ở docker/functions-runtime (tách khỏi
+  # supabase/functions để CLI cloud không nhầm deploy).
+  functions:
+    image: supabase/edge-runtime:v1.76.2
+    container_name: splitz-functions
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./supabase/functions:/home/deno/functions:ro
+      - ./docker/functions-runtime/main:/home/deno/functions/main:ro
+      - ./docker/functions-runtime/deno.jsonc:/home/deno/functions/deno.jsonc:ro
+      - deno-cache:/root/.cache/deno
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres
+      VERIFY_JWT: "true"
+    command: ["start", "--main-service", "/home/deno/functions/main"]
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/127.0.0.1/9000'"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ───────────────────────── Gateway (Kong) ─────────────────────────
+  kong:
+    image: kong:2.8.1
+    container_name: splitz-kong
+    restart: unless-stopped
+    depends_on:
+      auth:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
+      functions:
+        condition: service_healthy
+      rest:
+        condition: service_started
+    volumes:
+      - ./docker/kong.yml:/etc/kong/kong.yml:ro
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /etc/kong/kong.yml
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
+    ports:
+      - "${API_PORT:-8081}:8000"
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ───────────────────────── Studio (dashboard) ─────────────────────────
+  studio:
+    image: supabase/studio:2026.09.07-sha-7996410
+    container_name: splitz-studio
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DEFAULT_ORGANIZATION_NAME: "Splitz Self-host"
+      DEFAULT_PROJECT_NAME: "Splitz"
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${API_EXTERNAL_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      LOGFLARE_API_KEY: dummy-key # Studio yêu cầu có mặt; log tách riêng không dùng ở đây
+      NEXT_PUBLIC_ENABLE_LOGS: "false"
+    ports:
+      - "${STUDIO_PORT:-8082}:3000"
+
+  meta:
+    image: supabase/postgres-meta:v0.99.0
+    container_name: splitz-meta
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: db
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+
+  # ───────────────────────── Splitz app ─────────────────────────
+  splitz:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: splitz
+    container_name: splitz-app
+    restart: unless-stopped
+    depends_on:
+      kong:
+        condition: service_healthy
+    ports:
+      - "${SPLITZ_PORT:-8080}:80"
+    environment:
+      # Trình duyệt gọi Kong TỪ NGOÀI docker network → đây phải là URL mà máy
+      # trình duyệt dùng được (mặc định http://localhost:8081).
+      SPLITZ_SUPABASE_URL: ${API_EXTERNAL_URL}
+      SPLITZ_SUPABASE_ANON_KEY: ${ANON_KEY}
+      SPLITZ_SITE_URL: ${SITE_URL}
+      # Đăng nhập email + mật khẩu (khớp GOTRUE_EXTERNAL_EMAIL_ENABLED của auth;
+      # tắt cả hai qua ENABLE_EMAIL_SIGNUP=false trong .env.docker).
+      SPLITZ_ENABLE_PASSWORD_LOGIN: ${ENABLE_EMAIL_SIGNUP:-true}
+
+volumes:
+  db-data:
+  storage-data:
+  deno-cache:

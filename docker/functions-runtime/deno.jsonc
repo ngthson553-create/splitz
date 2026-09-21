@@ -1,0 +1,6 @@
+{
+  // Import map dùng chung cho mọi edge function (edge-runtime self-host).
+  // Function Splitz import trực tiếp bằng specifier đầy đủ (jsr:, npm:) nên
+  // map rỗng là đủ — chỉ cần file TỒN TẠI vì main/index.ts trỏ tới nó.
+  "imports": {}
+}
