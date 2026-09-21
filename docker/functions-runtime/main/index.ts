@@ -96,13 +96,15 @@ Deno.serve(async (req: Request) => {
     return Response.json({ msg: 'missing function name in request' }, { status: 400 })
   }
 
+  // Function Splitz nằm ở /home/deno/functions (ro); bootstrap + import map
+  // mount RIÊNG ở /main và /deno.jsonc — không lồng mount vào mount read-only.
   const servicePath = `/home/deno/functions/${service_name}`
   console.error(`serving the request with ${servicePath}`)
 
   const memoryLimitMb = 150
   const workerTimeoutMs = 1 * 60 * 1000
   const noModuleCache = false
-  const importMapPath = '/home/deno/functions/deno.jsonc'
+  const importMapPath = '/deno.jsonc'
   const envVarsObj = { ...Deno.env.toObject(), SUPABASE_FUNCTION_SLUG: service_name }
   const envVars = Object.keys(envVarsObj).map((k) => [k, envVarsObj[k]])
 

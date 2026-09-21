@@ -23,6 +23,11 @@ services:
     restart: unless-stopped
     volumes:
       - db-data:/var/lib/postgresql/data
+      # Đồng bộ mật khẩu role service = POSTGRES_PASSWORD ở lần init đầu
+      # (image tạo các role này KHÔNG mật khẩu — xem docker/db/roles.sql).
+      # Tên file phải sort SAU init-scripts/ + migrations/ của image: chữ "r" >
+      # "i"/"m", dùng số thì lại sort trước — nên giữ nguyên tên "roles.sql".
+      - ./docker/db/roles.sql:/docker-entrypoint-initdb.d/roles.sql:ro
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     healthcheck:
@@ -32,30 +37,75 @@ services:
       retries: 10
 
   # ── Chạy 34 migration theo thứ tự tên file (one-shot) ──
+  # Phụ thuộc cả `storage`: 0016_attachments.sql insert vào storage.buckets —
+  # schema `storage` do storage-api tự tạo lúc khởi động, không phải image db.
   migrations:
     image: supabase/postgres:17.6.1.136
     container_name: splitz-migrations
     depends_on:
       db:
         condition: service_healthy
+      storage:
+        condition: service_healthy
     volumes:
       - ./supabase/migrations:/migrations:ro
+      - ./docker/db/storage-policies.sql:/storage-policies.sql:ro
     entrypoint:
       - /bin/sh
       - -c
       - |
         set -eu
-        echo "Đợi auth schema (image bootstrap ở lần init đầu)…"
-        until psql "postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres" -tAc \
+        DB="postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres"
+        echo "Đợi auth schema (image bootstrap) + storage.buckets (storage-api)…"
+        until psql "$$DB" -tAc \
           "select 1 from information_schema.schemata where schema_name='auth'" | grep -q 1; do
           sleep 2
         done
-        for f in /migrations/*.sql; do
-          echo "→ Áp dụng $$f"
-          psql "postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres" \
-            -v ON_ERROR_STOP=1 --single-transaction -f "$$f"
+        until psql "$$DB" -tAc \
+          "select 1 from information_schema.tables where table_schema='storage' and table_name='buckets'" | grep -q 1; do
+          sleep 2
         done
-        echo "Hoàn tất toàn bộ migration."
+        # storage-api tạo schema storage lúc NÓ boot (image db không có sẵn)
+        # nhưng v1.74 KHÔNG kèm policy → thiếu là NoSuchBucket với mọi bucket.
+        # Chạy sau wait-loop bên trên là lúc chắc chắn schema đã tồn tại.
+        psql "$$DB" -q -v ON_ERROR_STOP=1 -f /storage-policies.sql
+        # Bảng tracking: chạy lại container không áp dụng lại file cũ.
+        psql "$$DB" -q -c "create table if not exists public._splitz_migrations (name text primary key, applied_at timestamptz not null default now())"
+        for f in /migrations/*.sql; do
+          name=$$(basename "$$f")
+          if psql "$$DB" -tAc "select 1 from public._splitz_migrations where name='$$name'" | grep -q 1; then
+            echo "→ Bỏ qua $$name (đã áp dụng)"
+            continue
+          fi
+          echo "→ Áp dụng $$name"
+          # Lịch sử có phần TRÙNG: 0002 là snapshot schema đầy đủ nên các file
+          # cũ (vd 0019 tái tạo ai_usage) gặp lỗi "already exists" trên DB mới.
+          # Chỉ dung lỗi lớp "đã tồn tại"; lỗi khác là lỗi THẬT → dừng ngay.
+          if psql "$$DB" -v ON_ERROR_STOP=1 --single-transaction -f "$$f" 2>/tmp/mig.err; then
+            psql "$$DB" -q -c "insert into public._splitz_migrations (name) values ('$$name')"
+          else
+            if grep "ERROR:" /tmp/mig.err | grep -qvE "already exists|duplicate key value violates"; then
+              echo "LỖI_migration_$$name"; cat /tmp/mig.err; exit 1
+            fi
+            # File trùng LỊCH SỬ nhưng vẫn có câu RIÊNG (vd 0019: bảng ai_usage
+            # trùng 0002 nhưng hàm bump_ai_usage là của riêng nó). Áp lại không
+            # transaction: câu trùng tự fail từng câu, câu mới vẫn vào.
+            echo "→ $$name: trùng snapshot (0002) — áp lại kiểu dung sai"
+            psql "$$DB" -f "$$f" 2>/tmp/mig2.err || true
+            if grep "ERROR:" /tmp/mig2.err | grep -qvE "already exists|duplicate key value violates"; then
+              echo "LỖI_migration_$$name_(dung sai)"; cat /tmp/mig2.err; exit 1
+            fi
+            psql "$$DB" -q -c "insert into public._splitz_migrations (name) values ('$$name')"
+          fi
+        done
+        # Chốt: các đối tượng cốt lõi phải tồn tại sau cùng.
+        for obj in groups profiles expenses settlements ai_usage redemption_codes; do
+          psql "$$DB" -tAc "select 1 from information_schema.tables where table_schema='public' and table_name='$$obj'" | grep -q 1 \
+            || { echo "THIẾU bảng $$obj sau migration!"; exit 1; }
+        done
+        psql "$$DB" -tAc "select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='bump_ai_usage'" | grep -q 1 \
+          || { echo "THIẾU hàm bump_ai_usage!"; exit 1; }
+        echo "Hoàn tất toàn bộ migration — trạng thái cuối đã kiểm chứng."
     restart: "no"
 
   # ───────────────────────── Auth (GoTrue) ─────────────────────────
@@ -75,6 +125,10 @@ services:
       GOTRUE_SITE_URL: ${SITE_URL}
       GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      # Role nhúng vào JWT người dùng — PostgREST đọc claim này để chọn role
+      # DB (authenticated). Bỏ trống → role "" → mọi truy vấn REST của người
+      # dùng nổ "role \"\" does not exist".
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
       # Self-host không có SMTP mặc định → tự xác nhận email để đăng nhập được
       # ngay. Có SMTP: đặt ENABLE_EMAIL_AUTOCONFIRM=false + điền SMTP_* bên dưới.
       GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM:-true}
@@ -83,7 +137,9 @@ services:
       GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP:-true}
       GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
       GOTRUE_SMTP_HOST: ${SMTP_HOST:-}
-      GOTRUE_SMTP_PORT: ${SMTP_PORT:-}
+      # GoTrue chết nếu port là chuỗi rỗng (envconfig int) → default 587 hợp lệ
+      # dù không dùng (SMTP_HOST trống thì GoTrue bỏ qua toàn bộ khối SMTP).
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
       GOTRUE_SMTP_USER: ${SMTP_USER:-}
       GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
       GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-}
@@ -132,6 +188,7 @@ services:
       AUTH_JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: postgresql://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
       FILE_STORAGE_BACKEND: disk
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
       PORT: 8000
       REGION: ${STORAGE_REGION:-local}
       GLOBAL_S3_BUCKET: ${STORAGE_BUCKET:-splitz-attachments}
@@ -146,7 +203,9 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8000/status",
+          # 127.0.0.1 chứ không phải localhost: busybox wget giải localhost
+          # sang ::1 (IPv6) còn storage-api chỉ nghe IPv4 → bị refused.
+          "http://127.0.0.1:8000/status",
         ]
       interval: 5s
       timeout: 5s
@@ -174,8 +233,10 @@ services:
         condition: service_healthy
     volumes:
       - ./supabase/functions:/home/deno/functions:ro
-      - ./docker/functions-runtime/main:/home/deno/functions/main:ro
-      - ./docker/functions-runtime/deno.jsonc:/home/deno/functions/deno.jsonc:ro
+      # Bootstrap + import map mount RIÊNG (không lồng vào mount :ro ở trên —
+      # docker không tạo được mountpoint trong bind mount read-only).
+      - ./docker/functions-runtime/main:/main:ro
+      - ./docker/functions-runtime/deno.jsonc:/deno.jsonc:ro
       - deno-cache:/root/.cache/deno
     environment:
       JWT_SECRET: ${JWT_SECRET}
@@ -184,7 +245,7 @@ services:
       SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
       SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres
       VERIFY_JWT: "true"
-    command: ["start", "--main-service", "/home/deno/functions/main"]
+    command: ["start", "--main-service", "/main"]
     healthcheck:
       test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/127.0.0.1/9000'"]
       interval: 5s
@@ -219,9 +280,13 @@ services:
       timeout: 5s
       retries: 10
 
-  # ───────────────────────── Studio (dashboard) ─────────────────────────
+  # ───────────────────────── Studio (dashboard) — TUỲ CHỌN ─────────────────────────
+  # Kích hoạt: docker compose -f docker-compose.supabase.yml --profile studio up -d
+  # Image Studio lớn (~4 GB giải nén) — VPS nhỏ có thể bỏ qua; mọi tính năng
+  # của app vẫn chạy đầy đủ mà không có dashboard.
   studio:
     image: supabase/studio:2026.09.07-sha-7996410
+    profiles: ["studio"]
     container_name: splitz-studio
     restart: unless-stopped
     depends_on:
@@ -244,6 +309,7 @@ services:
 
   meta:
     image: supabase/postgres-meta:v0.99.0
+    profiles: ["studio"]
     container_name: splitz-meta
     restart: unless-stopped
     depends_on:
