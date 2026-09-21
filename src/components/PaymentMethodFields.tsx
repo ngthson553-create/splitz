@@ -289,7 +289,7 @@ export function isPaymentMethodComplete(value: PaymentMethodValue): boolean {
     case 'sepa':
       return v('iban').replace(/[^a-zA-Z0-9]/g, '').length >= 16
     case 'upi':
-      return /^[\w.\-]{2,}@[a-zA-Z]{2,}$/.test(v('vpa').trim())
+      return /^[\w.-]{2,}@[a-zA-Z]{2,}$/.test(v('vpa').trim())
     case 'promptpay':
       return v('proxyValue').replace(/\D/g, '').length >= 9
     case 'pix':

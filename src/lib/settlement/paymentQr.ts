@@ -48,7 +48,7 @@ export type PromptPayInput = { proxyType: 'phone' | 'nationalId'; proxyValue: st
 
 /** Chuẩn hoá số điện thoại Thái về dạng 0066xxxxxxxxx (13 số). */
 function normalizeThaiPhone(raw: string): string {
-  let digits = raw.replace(/\D/g, '')
+  const digits = raw.replace(/\D/g, '')
   if (digits.startsWith('0066')) return digits
   if (digits.startsWith('66')) return '00' + digits
   if (digits.startsWith('0')) return '0066' + digits.slice(1)
