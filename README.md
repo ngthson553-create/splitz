@@ -58,6 +58,8 @@ BIN codes, names and logos for 62 banks.
 
 ## Features
 
+The UI is **bilingual Vietnamese/English** — auto-detected from the browser, switchable in Settings → Language.
+
 **Splitting and settlement**
 
 - Groups and members, with quick add and invite links/codes.
@@ -258,6 +260,24 @@ provided by `public/_redirects`).
 
 Set `VITE_SITE_URL` and any optional `VITE_*` variables in the host's build
 environment before the first deploy.
+
+## Self-hosting with Docker
+
+A public image is published to GHCR — running it in local mode (no backend)
+is a single command:
+
+```bash
+docker run -d -p 8080:80 ghcr.io/ngthson553-create/splitz:latest
+```
+
+To bring your own backend (sign-in, sync, storage, edge functions) on a VPS,
+`docker-compose.supabase.yml` stands up Postgres 17 + GoTrue + PostgREST +
+Storage + Kong with all 34 migrations applied automatically, plus email +
+password sign-in that needs no Google Cloud project. Full guide:
+[docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
+
+The image is reconfigurable at runtime through container env vars (`SPLITZ_*`)
+— no rebuild needed when you change Supabase or the domain.
 
 ## Status and roadmap
 

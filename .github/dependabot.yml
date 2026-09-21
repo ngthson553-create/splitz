@@ -55,3 +55,15 @@ updates:
       - dependency-name: '*'
         update-types:
           - version-update:semver-major
+
+  # Base image của Dockerfile (nginx:alpine). Node build-stage pin theo major
+  # (node:22-alpine khớp engines >=22) — Dependabot chỉ đề xuất minor/patch,
+  # đổi major node phải làm chủ động vì ảnh hưởng build.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: '*'
+        update-types:
+          - version-update:semver-major

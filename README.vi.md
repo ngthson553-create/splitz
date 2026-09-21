@@ -56,6 +56,8 @@ tên và logo của 62 ngân hàng.
 
 ## Tính năng
 
+Giao diện song ngữ **Việt/Anh** — tự nhận theo trình duyệt, đổi tay ở Cài đặt → Ngôn ngữ.
+
 **Chia tiền và quyết toán**
 
 - Nhóm và thành viên, thêm nhanh, mời bằng link hoặc mã.
@@ -248,6 +250,22 @@ sẵn qua `public/_redirects`).
 
 Đặt `VITE_SITE_URL` và các biến `VITE_*` tuỳ chọn trong môi trường build của host
 trước lần deploy đầu tiên.
+
+## Tự host bằng Docker
+
+Image công khai trên GHCR — chạy chế độ local (không backend) chỉ cần 1 lệnh:
+
+```bash
+docker run -d -p 8080:80 ghcr.io/ngthson553-create/splitz:latest
+```
+
+Muốn nguyên bộ backend (đăng nhập, đồng bộ, storage, Edge Functions) trên VPS
+của bạn: `docker-compose.supabase.yml` dựng Postgres 17 + GoTrue + PostgREST +
+Storage + Kong + 34 migration tự chạy, kèm đăng nhập email/mật khẩu không cần
+Google Cloud. Hướng dẫn đầy đủ: [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md).
+
+Image tái cấu hình lúc chạy qua biến môi trường container (`SPLITZ_*`) — không
+cần build lại khi đổi Supabase hay domain.
 
 ## Tình trạng và lộ trình
 
