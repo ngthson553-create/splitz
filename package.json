@@ -1,7 +1,7 @@
 {
   "name": "splitz",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Mobile-first PWA for splitting group expenses: track who paid, reduce debts to the fewest transfers, and settle up with a VietQR bank-transfer QR code.",
   "license": "Apache-2.0",
   "author": "ngthson553-create <286624578+ngthson553-create@users.noreply.github.com>",
